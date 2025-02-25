@@ -8,6 +8,8 @@ A comprehensive suite of development tools including an MCP (Model Context Proto
 - **Web Search Integration**: Powered by Perplexity AI
 - **Repository Analysis**: Using Google's Gemini AI
 - **Browser Automation**: For web interaction and testing
+- **REST API**: Optional HTTP API for accessing MCP resources
+- **Search History**: Store and retrieve past searches
 - **Comprehensive Documentation**: Including research and implementation guides
 
 ## 📋 Prerequisites
@@ -15,6 +17,7 @@ A comprehensive suite of development tools including an MCP (Model Context Proto
 - Node.js (v16 or higher)
 - npm or yarn
 - TypeScript knowledge for development
+- Playwright for browser automation capabilities
 
 ## 🛠️ Installation
 
@@ -29,7 +32,12 @@ cd developer-tools
 npm install
 ```
 
-3. Set up environment variables:
+3. Install Playwright (optional, for browser automation):
+```bash
+npm install playwright
+```
+
+4. Set up environment variables:
 ```bash
 cp .env.example .env
 # Edit .env with your actual API keys and configuration
@@ -45,6 +53,8 @@ The following environment variables are required:
 - `LOG_LEVEL`: Logging level (debug/info/warn/error)
 - `PORT`: Server port (default: 3000)
 - `HOST`: Server host (default: localhost)
+- `REST_API_ENABLED`: Enable REST API server (true/false)
+- `REST_API_PORT`: REST API server port (default: 3000)
 
 ## 🚀 Usage
 
@@ -62,6 +72,111 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## 🧩 Services
+
+The project is organized into modular services:
+
+### PerplexityService
+Handles web search operations using the Perplexity AI API. It provides:
+- Web search functionality with customizable parameters
+- Detailed logging for search operations
+- Error handling for API failures
+
+### GeminiService
+Manages interactions with the Google Gemini API for:
+- Code and repository analysis
+- Content generation
+- AI-powered insights
+
+### FileStorageService
+Provides file system operations with:
+- File reading/writing with configurable options
+- Directory creation
+- Append operations
+- File existence checking
+- File deletion
+
+### BrowserService
+Provides browser automation capabilities using Playwright:
+- Web page navigation and content collection
+- Form filling and submission
+- Data extraction from web pages
+- Screenshot capture
+- Console and network request monitoring
+
+## 🔧 Tools
+
+The MCP server provides the following tools:
+
+### Web Search
+```typescript
+// Example usage
+const result = await webSearchTool.execute({
+  query: "TypeScript best practices",
+  saveToFile: "search-results.md" // Optional
+});
+```
+
+### Repository Analysis
+```typescript
+// Example usage
+const result = await repoAnalysisTool.execute({
+  query: "Analyze code quality",
+  targetPath: "./src",
+  maxDepth: 3,
+  saveToFile: "analysis-results.md" // Optional
+});
+```
+
+### Browser Automation
+```typescript
+// Example usage - Navigate to a URL
+const result = await browserAutomationTool.execute({
+  action: "navigate",
+  url: "https://example.com",
+  options: {
+    captureScreenshot: true,
+    captureHtml: true,
+    captureConsole: true
+  }
+});
+
+// Example usage - Fill a form
+const result = await browserAutomationTool.execute({
+  action: "form",
+  url: "https://example.com/login",
+  formData: {
+    username: "user",
+    password: "pass"
+  }
+});
+
+// Example usage - Extract data
+const result = await browserAutomationTool.execute({
+  action: "extract",
+  url: "https://example.com/products",
+  selectors: {
+    titles: ".product-title",
+    prices: ".product-price"
+  }
+});
+```
+
+## 🌐 REST API
+
+When enabled, the REST API provides HTTP endpoints for accessing MCP resources:
+
+### Search History Endpoints
+
+- `GET /api/search-history`: Get all search history entries with pagination
+- `GET /api/search-history/search?term=query`: Search through history
+- `GET /api/search-history/:id`: Get a specific search by ID
+- `POST /api/search-history`: Add a new search entry
+- `DELETE /api/search-history/:id`: Delete a specific search
+- `DELETE /api/search-history`: Clear all search history
+
+Enable the REST API by setting `REST_API_ENABLED=true` in your `.env` file.
 
 ## 📚 Documentation
 
@@ -102,4 +217,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Model Context Protocol team for the SDK
 - Perplexity AI for search capabilities
-- Google Gemini for AI features 
+- Google Gemini for AI features
+- Playwright team for browser automation capabilities 

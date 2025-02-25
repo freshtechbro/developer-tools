@@ -13,6 +13,22 @@ const WebSearchResponseSchema = z.object({
     })
 });
 
+const RepoAnalysisResponseSchema = z.object({
+    result: z.object({
+        analysis: z.string(),
+        codeInsights: z.object({
+            architecture: z.array(z.string()).optional(),
+            dependencies: z.array(z.string()).optional(),
+            patterns: z.array(z.string()).optional(),
+        }).optional(),
+        documentationInsights: z.object({
+            coverage: z.number().optional(),
+            quality: z.string().optional(),
+            recommendations: z.array(z.string()).optional(),
+        }).optional(),
+    })
+});
+
 const HealthCheckResponseSchema = z.object({
     result: z.object({
         status: z.enum(['healthy', 'unhealthy']),
@@ -51,43 +67,55 @@ async function main() {
                 arguments: {}
             }
         }, HealthCheckResponseSchema);
-
-        logger.info("Health check results:", { health: healthResponse.result });
+        logger.info("Health check response:", healthResponse);
 
         // Test web search
         logger.info("Testing web search tool...");
-        const searchResponse = await client.request({
+        const webSearchResponse = await client.request({
             method: "tool/execute",
             params: {
                 toolName: 'web-search',
                 version: '0.1.0',
                 arguments: {
-                    query: "What are the latest developments in AI?",
-                    saveTo: "local-research/ai-developments.md"
+                    query: "What is MCP (Model Context Protocol)?",
+                    saveToFile: true
                 }
             }
         }, WebSearchResponseSchema);
+        logger.info("Web search response:", webSearchResponse);
 
-        logger.info("Web Search Results:", {
-            results: searchResponse.result.searchResults,
-            savedTo: searchResponse.result.savedToFile
-        });
+        // Test repository analysis
+        logger.info("Testing repository analysis tool...");
+        const repoAnalysisResponse = await client.request({
+            method: "tool/execute",
+            params: {
+                toolName: 'repo-analysis',
+                version: '0.1.0',
+                arguments: {
+                    query: "What is the architecture of this project?",
+                    analysisType: "both",
+                    maxDepth: 2
+                }
+            }
+        }, RepoAnalysisResponseSchema);
+        logger.info("Repository analysis response:", repoAnalysisResponse);
 
     } catch (error) {
-        logger.error("Error during test:", {
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
-        });
+        if (error instanceof Error) {
+            logger.error("Error occurred", { error: error.message });
+        } else {
+            logger.error("Unknown error occurred", { error: String(error) });
+        }
     } finally {
-        logger.info("Closing client connection...");
         client.close();
     }
 }
 
 main().catch((error) => {
-    logger.error("Fatal error:", {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-    });
+    if (error instanceof Error) {
+        logger.error("Fatal error occurred", { error: error.message });
+    } else {
+        logger.error("Unknown fatal error occurred", { error: String(error) });
+    }
     process.exit(1);
 }); 

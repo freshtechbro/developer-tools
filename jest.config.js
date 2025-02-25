@@ -1,6 +1,6 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
-module.exports = {
-  preset: 'ts-jest',
+export default {
+  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
@@ -9,13 +9,17 @@ module.exports = {
       'ts-jest',
       {
         useESM: true,
+        tsconfig: 'tsconfig.json'
       },
     ],
   },
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^(\\.{1,2}/.*)\\.ts$': '$1'
   },
   extensionsToTreatAsEsm: ['.ts'],
+  testTimeout: 10000,
+  setupFiles: ['<rootDir>/src/test/setup.ts'],
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
     'src/**/*.ts',

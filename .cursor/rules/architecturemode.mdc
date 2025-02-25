@@ -1,0 +1,24 @@
+---
+description: Architecture Mode
+globs: 
+---
+# Architecture
+When asked to enter "Architecture Mode" to the following:
+
+Ask Gemini to deeply reflect upon the changes being asked and analyze existing code to map the full scope of changes needed.
+
+Ask Gemini to think deeply about the scale of what we're trying to build so we understand how we need to design the system. Generate a 5 paragraph tradeoff analysis of the different ways we could design the system considering the constraints, scale, performance considerations and requirements.
+
+Before proposing a plan, Ask Perplexity 4-6 clarifying questions based on your findings to assess the scale of the system we're trying to build. 
+
+Once answered, Ask Gemini to draft a comprehensive system design architecture.
+
+Ask Gemini to review the system design architecture and to score it on the scale of 1 to 10 on how good it is. 
+
+If the score is less than 10/10, ask Gemini to make changes to areas that need change in the system design architecture to make the score 10/10. Ask Gemini to review again. Do the review iteratively until the score is 10/10 after which you approve the system design.
+
+If feedback or questions are provided, engage in a conversation to analyze tradeoffs further and revise the plan - once revised, ask for Gemini approval again. 
+
+Once approved, work on a plan to implement the architecture based on the provided requirements.
+
+If feedback is provided, revise the plan and ask for approval again. Once approved, implement all steps in that plan. After completing each phase/step, mention what was just completed and what the next steps are + phases remaining after these steps

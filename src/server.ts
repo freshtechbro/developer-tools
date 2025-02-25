@@ -1,9 +1,15 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { webSearchTool } from './capabilities/tools/web-search.js';
+import { repoAnalysisTool } from './capabilities/tools/repo-analysis.js';
+import { browserAutomationTool } from './capabilities/tools/browser-automation.js';
 import { config, ServerConfigSchema } from './config/index.js';
 import { logger } from './utils/logger.js';
 import { z } from 'zod';
+import express from 'express';
+import cors from 'cors';
+import { searchHistoryRoutes } from './routes/search-history.routes.js';
+import { searchHistoryResource } from './resources/search-history.resource.js';
 
 // Define health check schema
 const HealthCheckSchema = z.object({
@@ -40,9 +46,14 @@ async function main() {
         // Validate server configuration
         const validatedConfig = ServerConfigSchema.parse(config);
 
+        // Initialize resources
+        await searchHistoryResource.initialize();
+
         // Create tools map
         const tools: Record<string, Tool> = {
             'web-search': webSearchTool,
+            'repo-analysis': repoAnalysisTool,
+            'browser-automation': browserAutomationTool,
             'health-check': {
                 name: 'health-check',
                 version: '0.1.0',
@@ -61,9 +72,42 @@ async function main() {
             }
         };
 
+        // Set up REST API server if enabled
+        if (validatedConfig.restApi?.enabled) {
+            const app = express();
+            const port = validatedConfig.restApi.port || 3000;
+            
+            // Apply middleware
+            app.use(express.json());
+            app.use(cors());
+            
+            // Register routes
+            app.use('/api/search-history', searchHistoryRoutes);
+            
+            // Health check endpoint
+            app.get('/health', (req, res) => {
+                res.json({
+                    status: 'healthy',
+                    uptime: process.uptime(),
+                    timestamp: new Date().toISOString(),
+                    version: validatedConfig.version
+                });
+            });
+            
+            // Start REST API server
+            app.listen(port, () => {
+                logger.info(`REST API server started`, { port });
+            });
+        }
+
         const server = new Server(validatedConfig, {
             capabilities: {
-                resources: {}, // Resources will be defined here
+                resources: {
+                    'search-history': {
+                        name: 'search-history',
+                        description: 'Store and retrieve web search history'
+                    }
+                },
                 tools
             }
         });
@@ -110,7 +154,10 @@ async function main() {
         await server.connect(transport);
         logger.info("MCP Server started successfully", {
             transport: "stdio",
-            tools: Object.keys(tools)
+            tools: Object.keys(tools),
+            restApi: validatedConfig.restApi?.enabled 
+                ? `Running on port ${validatedConfig.restApi.port}` 
+                : 'Disabled'
         });
 
     } catch (error) {

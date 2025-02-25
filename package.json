@@ -4,13 +4,20 @@
   "description": "A comprehensive suite of development tools including MCP server implementation",
   "type": "module",
   "main": "dist/server.js",
+  "exports": {
+    ".": {
+      "import": "./dist/server.js",
+      "types": "./dist/server.d.ts"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "ts-node --esm src/server.ts",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test:client": "node dist/test-client.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -46,7 +53,8 @@
     "prettier": "^3.2.4",
     "ts-jest": "^29.1.2",
     "ts-node": "10.9.2",
-    "typescript": "5.3.3"
+    "typescript": "5.3.3",
+    "cursor-tools": "latest"
   },
   "lint-staged": {
     "*.ts": [
@@ -54,4 +62,4 @@
       "prettier --write"
     ]
   }
-} 
+}

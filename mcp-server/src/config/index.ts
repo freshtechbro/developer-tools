@@ -8,7 +8,8 @@ dotenv.config();
 const EnvSchema = z.object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-    PERPLEXITY_API_KEY: z.string(),
+    PERPLEXITY_API_KEY: z.string().optional(),
+    GEMINI_API_KEY: z.string(),
     PORT: z.string().optional(),
     HOST: z.string().optional()
 });
@@ -36,7 +37,8 @@ export const config = {
     env: env.NODE_ENV,
     port: env.PORT ? parseInt(env.PORT, 10) : undefined,
     host: env.HOST,
-    perplexityApiKey: env.PERPLEXITY_API_KEY
+    perplexityApiKey: env.PERPLEXITY_API_KEY,
+    geminiApiKey: env.GEMINI_API_KEY
 };
 
 // Export environment variables
