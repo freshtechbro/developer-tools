@@ -1,212 +1,143 @@
 # Developer Tools
 
-A comprehensive suite of AI-powered tools and utilities for supercharging developer productivity.
+A comprehensive suite of tools for developers, integrated into a unified platform. This project provides tools for web search, repository analysis, documentation generation, and browser automation.
 
-## Vision
+## Features
 
-Developer Tools is designed to give developers superpowers when working with AI tools. It serves as an intelligent assistant that performs actions to help developers answer questions, solve problems, and automate tedious tasks. By providing a unified interface to various AI capabilities, it enables developers to:
+- **Web Search**: Search the web using natural language queries with Perplexity AI
+- **Repository Analysis**: Analyze code repositories using Google Gemini
+- **Documentation Generation**: Generate documentation from code repositories
+- **Browser Automation**: Automate browser actions for testing and scraping
 
-- **Search the web** with semantic understanding using Perplexity AI
-- **Analyze codebases** with contextual awareness using Google Gemini
-- **Automate browser interactions** for testing and data collection with Playwright
-- **Access GitHub information** seamlessly from within their workflow
-- **Generate comprehensive documentation** for projects and components
+## Architecture
 
-The vision is to create an indispensable companion for the modern developer, bridging the gap between human creativity and AI assistance to create a workflow that feels like pair programming with a superhuman partner.
+This project is organized as a monorepo with the following components:
 
-## Project Structure
+- **packages/**: Core packages used throughout the project
+  - **server/**: Server-side code including services, transports, and routes
+  - **shared/**: Shared utilities, types, and configurations
+  - **client/**: Client-side code for web interfaces
 
-The project is organized as a monorepo with the following packages:
+- **tools/**: Individual command-line tools
+  - **web-search/**: Web search tool using Perplexity AI
+  - **command-handler/**: Command handler for CLI and chat integrations
+  - **repo-analysis/**: Repository analysis tool using Google Gemini
+  - **doc-generation/**: Documentation generation tool
+  - **browser-automation/**: Browser automation tool
 
-- **client**: Client-side implementations for interacting with the tools
-- **server**: Server-side implementations for providing tool functionality
-- **shared**: Shared utilities and types used across packages
-
-### Architecture
-
-The system is built on the Model Context Protocol (MCP), with multiple transport methods:
-
-- **HTTP Transport**: RESTful endpoint at http://localhost:3001/mcp
-- **SSE Transport**: Event streaming endpoint at http://localhost:3002/mcp-sse
-- **Web Interface**: Interactive testing UI at http://localhost:3003
-
-For more details, see the [architecture documentation](local-research/architecture-design.md).
-
-### Directory Structure
-
-```
-developer-tools/
-├── config/                 # Configuration files
-├── docs/                   # Documentation
-│   ├── api/                # API documentation
-│   ├── resources/          # Resource documentation
-│   └── tools/              # Tool documentation
-├── packages/               # Monorepo packages
-│   ├── client/             # Client-side implementations
-│   ├── server/             # Server-side implementations
-│   └── shared/             # Shared utilities and types
-├── public/                 # Static web assets
-├── resources/              # Resource files
-├── scripts/                # Utility scripts
-│   ├── health-checks/      # Server health check scripts
-│   └── server-management/  # Server management scripts
-├── local-research/         # Project research and documentation
-└── tools/                  # Development tools
-```
-
-## Available Tools
-
-### Web Search
-
-The web search tool enables semantic search across the internet using Perplexity AI:
-
-```javascript
-// Example usage
-await client.executeTool({
-  toolName: 'web-search',
-  version: '0.1.0',
-  arguments: { query: 'How to implement rate limiting in Node.js' }
-});
-```
-
-### Repository Analysis
-
-Analyze codebases and answer questions using Google Gemini:
-
-```javascript
-// Example usage
-await client.executeTool({
-  toolName: 'repo-analysis',
-  version: '0.1.0',
-  arguments: { repository: 'username/repo', query: 'Explain the authentication flow' }
-});
-```
-
-### Browser Automation
-
-Control web browsers for testing and data gathering:
-
-```javascript
-// Example usage
-await client.executeTool({
-  toolName: 'browser-open',
-  version: '0.1.0',
-  arguments: { url: 'https://example.com', options: { capture: ['html', 'screenshot'] } }
-});
-```
-
-### GitHub Integration
-
-Access GitHub information directly:
-
-```javascript
-// Example: Get PR information
-await client.readResource({
-  resourceType: 'github-pr',
-  resourceId: 'username/repo/123'
-});
-```
+- **unified-test-interface/**: Web interface for interacting with all tools
+- **mcp-server/**: Model Context Protocol server for AI integration
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- npm (v8 or higher)
+- Node.js v16 or higher
+- npm v8 or higher
 
 ### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/developer-tools.git
+cd developer-tools
+
 # Install dependencies
 npm install
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with your API keys and configuration
 ```
 
-### Running the Servers
+## Configuration
 
-To start all servers at once:
+Configuration is managed through environment variables and configuration files:
+
+- `.env`: Environment variables for API keys and settings
+- `config/`: Configuration files for different components
+
+Required environment variables:
+
+- `PERPLEXITY_API_KEY`: Perplexity AI API key for web search
+- `GEMINI_API_KEY`: Google Gemini API key for repository analysis
+- `RESEARCH_DIR`: Directory for saving search results
+
+## Usage
+
+### Command Line Interface
 
 ```bash
-# On Windows
-npm run start:all:windows
+# Web search
+npx dt web "What is the capital of France?"
+npx dt web "Latest JavaScript framework trends" --save
+npx dt web "Node.js file system API" --format json
 
-# On Unix/Linux/Mac
-npm run start:all
+# Repository analysis
+npx dt repo "Explain the authentication flow"
+
+# Documentation generation
+npx dt doc --output docs.md
+
+# Browser automation
+npx dt browser open "https://example.com" --html
 ```
 
-This will start:
-- HTTP Transport Server (port 3001)
-- SSE Transport Server (port 3002)
-- Web Interface (port 3003)
+### Unified Web Interface
 
-To start individual servers:
+Start the unified web interface for accessing all tools:
 
 ```bash
-npm run start:http  # Start HTTP transport server
-npm run start:sse   # Start SSE transport server
-npm run start:web   # Start web interface
+npm run start-unified
 ```
 
-### Checking Server Health
+Then open http://localhost:3000 in your browser.
 
-```bash
-npm run check
-```
+### Programmatic Usage
 
-### Testing SSE Connection
+```javascript
+import { webSearch } from '@developer-tools/web-search';
+import { repoAnalysis } from '@developer-tools/repo-analysis';
 
-```bash
-npm run test:sse
+// Perform a web search
+const searchResults = await webSearch("What is quantum computing?", {
+  format: "markdown",
+  save: true,
+  output: "quantum-computing.md"
+});
+
+// Analyze a repository
+const analysis = await repoAnalysis("Explain the authentication flow");
 ```
 
 ## Development
 
-### Building
+This project uses a monorepo structure with npm workspaces:
 
 ```bash
+# Run tests
+npm test
+
 # Build all packages
 npm run build
 
-# Build specific packages
-npm run build:shared
-npm run build:server
-npm run build:client
-
-# Watch mode for development
-npm run build:watch
-```
-
-### Testing
-
-```bash
-# Run all tests
-npm test
-
-# Test specific packages
-npm run test:shared
-npm run test:server
-npm run test:client
-
-# Watch mode for testing
-npm run test:watch
-
-# Generate test coverage
-npm run test:coverage
-```
-
-### Linting
-
-```bash
+# Lint code
 npm run lint
 ```
 
-## Contributing
+### Testing Transport Integrations
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+The project supports multiple transport mechanisms for tool execution:
+
+- HTTP: RESTful API transport
+- SSE: Server-Sent Events for real-time communication
+
+To test transport integrations:
+
+```bash
+npm run test-transport
+```
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details. 
