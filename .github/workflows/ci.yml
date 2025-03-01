@@ -1,62 +1,78 @@
-name: CI/CD
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ master ]
+    branches: [main]
   pull_request:
-    branches: [ master ]
+    branches: [main]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
-
+    
     strategy:
       matrix:
-        node-version: [16.x, 18.x, 20.x]
-
+        node-version: [18.x]
+    
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Check code style
-      run: |
-        npm run lint || true
-        npm run format || true
-    
-    - name: Build
-      run: npm run build --if-present
-    
-    - name: Run tests
-      run: npm test || true
-      env:
-        PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
-        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        NODE_ENV: test
-    
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: build-output
-        path: dist/
-
-  security:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Update import paths
+        run: npm run update-imports
+      
+      - name: Lint
+        run: npm run lint
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Test shared package
+        run: npm run test:shared
+      
+      - name: Test server package
+        run: npm run test:server
+      
+      - name: Test client package
+        run: npm run test:client
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+  
+  deploy-dev:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Security audit
-      run: npm audit
-    
-    - name: Check for vulnerable dependencies
-      uses: snyk/actions/node@master
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      continue-on-error: true 
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Deploy to development environment
+        run: |
+          echo "Deploying to development environment..."
+          # Add deployment script here
+          # This could be AWS, Azure, Heroku, or any other deployment target
+          # Example:
+          # npm run deploy:dev 

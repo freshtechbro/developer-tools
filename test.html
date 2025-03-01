@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE Connection Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow: auto;
+            max-height: 300px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .status {
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <h1>SSE Connection Tester</h1>
+    
+    <div class="container">
+        <div class="card">
+            <h2>Connection</h2>
+            <div class="controls">
+                <div>
+                    <label for="sseUrl">SSE URL:</label>
+                    <input type="text" id="sseUrl" value="http://localhost:3002/mcp-sse" style="width: 300px;">
+                </div>
+                <div>
+                    <label for="clientId">Client ID (optional):</label>
+                    <input type="text" id="clientId" placeholder="Leave blank for auto-generated">
+                </div>
+                <div>
+                    <button id="connectButton">Connect to SSE</button>
+                    <button id="disconnectButton" disabled>Disconnect</button>
+                </div>
+                <div class="status" id="connectionStatus">Not connected</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Send Test Message</h2>
+            <div class="controls">
+                <div>
+                    <label for="messageType">Message Type:</label>
+                    <select id="messageType">
+                        <option value="initialize">initialize</option>
+                        <option value="health-check">health-check</option>
+                        <option value="web-search">web-search</option>
+                        <option value="repo-analysis">repo-analysis</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="messagePayload">Additional Payload (JSON):</label>
+                    <input type="text" id="messagePayload" value="{}" style="width: 300px;">
+                </div>
+                <div>
+                    <label for="messageUrl">HTTP Endpoint:</label>
+                    <input type="text" id="messageUrl" value="http://localhost:3002/mcp-sse" style="width: 300px;">
+                </div>
+                <div>
+                    <button id="sendButton" disabled>Send Message</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Debug Information</h2>
+        <button id="clearLogsButton">Clear Logs</button>
+        <div>
+            <h3>Connection Events</h3>
+            <pre id="connectionEvents"></pre>
+        </div>
+        <div>
+            <h3>Received Messages</h3>
+            <pre id="receivedMessages"></pre>
+        </div>
+        <div>
+            <h3>Sent Messages</h3>
+            <pre id="sentMessages"></pre>
+        </div>
+    </div>
+    
+    <script>
+        let eventSource = null;
+        let currentClientId = null;
+        
+        const connectButton = document.getElementById('connectButton');
+        const disconnectButton = document.getElementById('disconnectButton');
+        const sendButton = document.getElementById('sendButton');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const connectionEvents = document.getElementById('connectionEvents');
+        const receivedMessages = document.getElementById('receivedMessages');
+        const sentMessages = document.getElementById('sentMessages');
+        const clearLogsButton = document.getElementById('clearLogsButton');
+        
+        function logConnectionEvent(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            connectionEvents.textContent = `[${timestamp}] ${message}\n` + connectionEvents.textContent;
+        }
+        
+        function logReceivedMessage(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            let messageText = typeof message === 'string' ? message : JSON.stringify(message, null, 2);
+            receivedMessages.textContent = `[${timestamp}] ${messageText}\n` + receivedMessages.textContent;
+        }
+        
+        function logSentMessage(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            sentMessages.textContent = `[${timestamp}] ${JSON.stringify(message, null, 2)}\n` + sentMessages.textContent;
+        }
+        
+        function updateConnectionStatus(status, isError = false) {
+            connectionStatus.textContent = status;
+            connectionStatus.className = 'status ' + (isError ? 'error' : 'success');
+        }
+        
+        function connect() {
+            const sseUrl = document.getElementById('sseUrl').value;
+            const clientId = document.getElementById('clientId').value;
+            
+            // Build URL with optional client ID
+            let url = new URL(sseUrl);
+            if (clientId) {
+                url.searchParams.append('clientId', clientId);
+            }
+            
+            logConnectionEvent(`Connecting to ${url.toString()}`);
+            
+            try {
+                // Close existing connection if any
+                if (eventSource) {
+                    eventSource.close();
+                }
+                
+                // Create new EventSource
+                eventSource = new EventSource(url.toString());
+                
+                // Setup event handlers
+                eventSource.onopen = function() {
+                    logConnectionEvent('Connection opened');
+                    updateConnectionStatus('Connected', false);
+                    connectButton.disabled = true;
+                    disconnectButton.disabled = false;
+                    sendButton.disabled = false;
+                };
+                
+                eventSource.onmessage = function(event) {
+                    logConnectionEvent('Message received');
+                    try {
+                        const data = JSON.parse(event.data);
+                        logReceivedMessage(data);
+                        
+                        // If this is a connection message, store the client ID
+                        if (data.type === 'connection' && data.sessionId) {
+                            currentClientId = data.sessionId;
+                            logConnectionEvent(`Session ID set to: ${currentClientId}`);
+                        }
+                    } catch (e) {
+                        logReceivedMessage('Raw message: ' + event.data);
+                    }
+                };
+                
+                eventSource.onerror = function(error) {
+                    logConnectionEvent(`Error: ${error.type}`);
+                    updateConnectionStatus('Error: Connection failed', true);
+                    
+                    // Log detailed error information
+                    console.error('SSE Connection Error:', error);
+                    logConnectionEvent(`Error details: ${JSON.stringify(error)}`);
+                    
+                    // Clean up on error
+                    disconnect();
+                };
+                
+                // Listen for specific event types
+                eventSource.addEventListener('error', function(event) {
+                    logConnectionEvent(`Named error event: ${JSON.stringify(event)}`);
+                });
+                
+                // Monitor readyState changes
+                const checkState = setInterval(() => {
+                    const states = ['CONNECTING', 'OPEN', 'CLOSED'];
+                    const stateText = states[eventSource.readyState] || 'UNKNOWN';
+                    logConnectionEvent(`ReadyState: ${stateText} (${eventSource.readyState})`);
+                    
+                    if (eventSource.readyState === 2) { // CLOSED
+                        clearInterval(checkState);
+                        disconnect();
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                logConnectionEvent(`Exception during connection: ${error.message}`);
+                updateConnectionStatus(`Error: ${error.message}`, true);
+            }
+        }
+        
+        function disconnect() {
+            if (eventSource) {
+                logConnectionEvent('Disconnecting...');
+                eventSource.close();
+                eventSource = null;
+            }
+            
+            connectButton.disabled = false;
+            disconnectButton.disabled = true;
+            sendButton.disabled = true;
+            updateConnectionStatus('Disconnected');
+        }
+        
+        function sendMessage() {
+            const messageType = document.getElementById('messageType').value;
+            const messageUrl = document.getElementById('messageUrl').value;
+            const payloadText = document.getElementById('messagePayload').value;
+            
+            try {
+                // Parse additional payload
+                const additionalPayload = payloadText ? JSON.parse(payloadText) : {};
+                
+                // Construct the message based on type
+                const message = {
+                    jsonrpc: '2.0',
+                    id: Date.now().toString(),
+                    method: messageType,
+                    params: {
+                        ...additionalPayload
+                    }
+                };
+                
+                // Add specific params based on message type
+                if (messageType === 'web-search') {
+                    message.params.query = message.params.query || 'test search';
+                } else if (messageType === 'repo-analysis') {
+                    message.params.repository = message.params.repository || 'test-repo';
+                    message.params.analysisType = message.params.analysisType || 'code';
+                }
+                
+                logSentMessage(message);
+                
+                // Send via fetch
+                fetch(messageUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(message)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    logConnectionEvent(`Message sent successfully, response received`);
+                    logReceivedMessage(data);
+                })
+                .catch(error => {
+                    logConnectionEvent(`Error sending message: ${error.message}`);
+                });
+                
+            } catch (error) {
+                logConnectionEvent(`Error preparing message: ${error.message}`);
+            }
+        }
+        
+        // Setup event listeners
+        connectButton.addEventListener('click', connect);
+        disconnectButton.addEventListener('click', disconnect);
+        sendButton.addEventListener('click', sendMessage);
+        clearLogsButton.addEventListener('click', () => {
+            connectionEvents.textContent = '';
+            receivedMessages.textContent = '';
+            sentMessages.textContent = '';
+        });
+        
+        // Initialize with timestamp
+        logConnectionEvent('Tester initialized');
+    </script>
+</body>
+</html> 

@@ -1,0 +1,47 @@
+[33mcommit 0a2bc6cd30a666675e3a3477427bd0b6de333d3f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: FreshTechBro <oladotun.olatunji@gmail.com>
+Date:   Tue Feb 25 12:52:15 2025 -0600
+
+    Major project enhancements: Implement services layer, update tools, add REST API, and improve docs
+
+ .cursor/rules/architecturemode.mdc                 |   24 [32m+[m
+ .cursor/rules/plannermode.mdc                      |   11 [32m+[m
+ .env.example                                       |    4 [32m+[m
+ .repomix-output.txt                                | 2465 [32m++++++++++++++++++[m[31m--[m
+ README.md                                          |  120 [32m+[m[31m-[m
+ docs/web-search-tool.md                            |   97 [32m+[m
+ jest.config.js                                     |    8 [32m+[m[31m-[m
+ local-research/codebase-analysis.md                |  155 [32m++[m
+ mcp-server/.env.example                            |    9 [32m+[m
+ mcp-server/.eslintrc.json                          |   24 [32m+[m
+ mcp-server/.gitignore                              |  Bin [31m66[m -> [32m142[m bytes
+ mcp-server/.husky/pre-commit                       |    4 [32m+[m
+ mcp-server/.prettierrc                             |    8 [32m+[m
+ mcp-server/jest.config.js                          |   24 [32m+[m
+ mcp-server/package.json                            |   17 [32m+[m[31m-[m
+ .../tools/__tests__/web-search.test.ts             |    1 [32m+[m
+ mcp-server/src/config/index.ts                     |    6 [32m+[m[31m-[m
+ mcp-server/src/gemini/__tests__/service.test.ts    |  209 [32m++[m
+ mcp-server/src/gemini/config.ts                    |   20 [32m+[m
+ mcp-server/src/gemini/service.ts                   |  163 [32m++[m
+ mcp-server/src/utils/retry.ts                      |   86 [32m+[m
+ mcp-server/tsconfig.json                           |   36 [32m+[m[31m-[m
+ package.json                                       |   18 [32m+[m[31m-[m
+ .../tools/__tests__/web-search.test.ts             |  104 [32m+[m
+ src/capabilities/tools/browser-automation.ts       |  183 [32m++[m
+ src/capabilities/tools/repo-analysis.ts            |  407 [32m++++[m
+ src/capabilities/tools/web-search.ts               |   96 [32m+[m[31m-[m
+ src/config/index.ts                                |   25 [32m+[m[31m-[m
+ src/resources/search-history.resource.ts           |  202 [32m++[m
+ src/routes/search-history.routes.ts                |  246 [32m++[m
+ src/server.ts                                      |   51 [32m+[m[31m-[m
+ src/services/README.md                             |   38 [32m+[m
+ src/services/browser.service.ts                    |  362 [32m+++[m
+ src/services/file-storage.service.ts               |  139 [32m++[m
+ src/services/gemini.service.ts                     |  127 [32m+[m
+ src/services/perplexity.service.ts                 |  125 [32m+[m
+ src/test-client.ts                                 |   64 [32m+[m[31m-[m
+ src/test/setup.ts                                  |   20 [32m+[m
+ src/types/tool.ts                                  |   10 [32m+[m
+ tsconfig.json                                      |   12 [32m+[m[31m-[m
+ 40 files changed, 5435 insertions(+), 285 deletions(-)

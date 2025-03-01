@@ -1,221 +1,212 @@
 # Developer Tools
 
-A comprehensive suite of development tools including an MCP (Model Context Protocol) server implementation and various utilities for enhancing developer productivity.
+A comprehensive suite of AI-powered tools and utilities for supercharging developer productivity.
 
-## 🚀 Features
+## Vision
 
-- **MCP Server Implementation**: A TypeScript-based server implementing the Model Context Protocol
-- **Web Search Integration**: Powered by Perplexity AI
-- **Repository Analysis**: Using Google's Gemini AI
-- **Browser Automation**: For web interaction and testing
-- **REST API**: Optional HTTP API for accessing MCP resources
-- **Search History**: Store and retrieve past searches
-- **Comprehensive Documentation**: Including research and implementation guides
+Developer Tools is designed to give developers superpowers when working with AI tools. It serves as an intelligent assistant that performs actions to help developers answer questions, solve problems, and automate tedious tasks. By providing a unified interface to various AI capabilities, it enables developers to:
 
-## 📋 Prerequisites
+- **Search the web** with semantic understanding using Perplexity AI
+- **Analyze codebases** with contextual awareness using Google Gemini
+- **Automate browser interactions** for testing and data collection with Playwright
+- **Access GitHub information** seamlessly from within their workflow
+- **Generate comprehensive documentation** for projects and components
 
-- Node.js (v16 or higher)
-- npm or yarn
-- TypeScript knowledge for development
-- Playwright for browser automation capabilities
+The vision is to create an indispensable companion for the modern developer, bridging the gap between human creativity and AI assistance to create a workflow that feels like pair programming with a superhuman partner.
 
-## 🛠️ Installation
+## Project Structure
 
-1. Clone the repository:
-```bash
-git clone https://github.com/freshtechbro/developer-tools.git
-cd developer-tools
+The project is organized as a monorepo with the following packages:
+
+- **client**: Client-side implementations for interacting with the tools
+- **server**: Server-side implementations for providing tool functionality
+- **shared**: Shared utilities and types used across packages
+
+### Architecture
+
+The system is built on the Model Context Protocol (MCP), with multiple transport methods:
+
+- **HTTP Transport**: RESTful endpoint at http://localhost:3001/mcp
+- **SSE Transport**: Event streaming endpoint at http://localhost:3002/mcp-sse
+- **Web Interface**: Interactive testing UI at http://localhost:3003
+
+For more details, see the [architecture documentation](local-research/architecture-design.md).
+
+### Directory Structure
+
+```
+developer-tools/
+├── config/                 # Configuration files
+├── docs/                   # Documentation
+│   ├── api/                # API documentation
+│   ├── resources/          # Resource documentation
+│   └── tools/              # Tool documentation
+├── packages/               # Monorepo packages
+│   ├── client/             # Client-side implementations
+│   ├── server/             # Server-side implementations
+│   └── shared/             # Shared utilities and types
+├── public/                 # Static web assets
+├── resources/              # Resource files
+├── scripts/                # Utility scripts
+│   ├── health-checks/      # Server health check scripts
+│   └── server-management/  # Server management scripts
+├── local-research/         # Project research and documentation
+└── tools/                  # Development tools
 ```
 
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Install Playwright (optional, for browser automation):
-```bash
-npm install playwright
-```
-
-4. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your actual API keys and configuration
-```
-
-## 🔧 Configuration
-
-The following environment variables are required:
-
-- `PERPLEXITY_API_KEY`: Your Perplexity AI API key
-- `GOOGLE_API_KEY`: Your Google API key for Gemini
-- `NODE_ENV`: Development environment (development/production/test)
-- `LOG_LEVEL`: Logging level (debug/info/warn/error)
-- `PORT`: Server port (default: 3000)
-- `HOST`: Server host (default: localhost)
-- `REST_API_ENABLED`: Enable REST API server (true/false)
-- `REST_API_PORT`: REST API server port (default: 3000)
-
-## 🚀 Usage
-
-1. Start the MCP server:
-```bash
-npm run start
-```
-
-2. For development with hot-reload:
-```bash
-npm run dev
-```
-
-3. Build the project:
-```bash
-npm run build
-```
-
-## 🧩 Services
-
-The project is organized into modular services:
-
-### PerplexityService
-Handles web search operations using the Perplexity AI API. It provides:
-- Web search functionality with customizable parameters
-- Detailed logging for search operations
-- Error handling for API failures
-
-### GeminiService
-Manages interactions with the Google Gemini API for:
-- Code and repository analysis
-- Content generation
-- AI-powered insights
-
-### FileStorageService
-Provides file system operations with:
-- File reading/writing with configurable options
-- Directory creation
-- Append operations
-- File existence checking
-- File deletion
-
-### BrowserService
-Provides browser automation capabilities using Playwright:
-- Web page navigation and content collection
-- Form filling and submission
-- Data extraction from web pages
-- Screenshot capture
-- Console and network request monitoring
-
-## 🔧 Tools
-
-The MCP server provides the following tools:
+## Available Tools
 
 ### Web Search
-```typescript
+
+The web search tool enables semantic search across the internet using Perplexity AI:
+
+```javascript
 // Example usage
-const result = await webSearchTool.execute({
-  query: "TypeScript best practices",
-  saveToFile: "search-results.md" // Optional
+await client.executeTool({
+  toolName: 'web-search',
+  version: '0.1.0',
+  arguments: { query: 'How to implement rate limiting in Node.js' }
 });
 ```
 
 ### Repository Analysis
-```typescript
+
+Analyze codebases and answer questions using Google Gemini:
+
+```javascript
 // Example usage
-const result = await repoAnalysisTool.execute({
-  query: "Analyze code quality",
-  targetPath: "./src",
-  maxDepth: 3,
-  saveToFile: "analysis-results.md" // Optional
+await client.executeTool({
+  toolName: 'repo-analysis',
+  version: '0.1.0',
+  arguments: { repository: 'username/repo', query: 'Explain the authentication flow' }
 });
 ```
 
 ### Browser Automation
-```typescript
-// Example usage - Navigate to a URL
-const result = await browserAutomationTool.execute({
-  action: "navigate",
-  url: "https://example.com",
-  options: {
-    captureScreenshot: true,
-    captureHtml: true,
-    captureConsole: true
-  }
-});
 
-// Example usage - Fill a form
-const result = await browserAutomationTool.execute({
-  action: "form",
-  url: "https://example.com/login",
-  formData: {
-    username: "user",
-    password: "pass"
-  }
-});
+Control web browsers for testing and data gathering:
 
-// Example usage - Extract data
-const result = await browserAutomationTool.execute({
-  action: "extract",
-  url: "https://example.com/products",
-  selectors: {
-    titles: ".product-title",
-    prices: ".product-price"
-  }
+```javascript
+// Example usage
+await client.executeTool({
+  toolName: 'browser-open',
+  version: '0.1.0',
+  arguments: { url: 'https://example.com', options: { capture: ['html', 'screenshot'] } }
 });
 ```
 
-## 🌐 REST API
+### GitHub Integration
 
-When enabled, the REST API provides HTTP endpoints for accessing MCP resources:
+Access GitHub information directly:
 
-### Search History Endpoints
+```javascript
+// Example: Get PR information
+await client.readResource({
+  resourceType: 'github-pr',
+  resourceId: 'username/repo/123'
+});
+```
 
-- `GET /api/search-history`: Get all search history entries with pagination
-- `GET /api/search-history/search?term=query`: Search through history
-- `GET /api/search-history/:id`: Get a specific search by ID
-- `POST /api/search-history`: Add a new search entry
-- `DELETE /api/search-history/:id`: Delete a specific search
-- `DELETE /api/search-history`: Clear all search history
+## Getting Started
 
-Enable the REST API by setting `REST_API_ENABLED=true` in your `.env` file.
+### Prerequisites
 
-## 📚 Documentation
+- Node.js (v18 or higher)
+- npm (v8 or higher)
 
-Detailed documentation is available in the `local-research` directory:
+### Installation
 
-- `mcp-setup-guide.md`: Complete setup instructions
-- `dependencies-installation-guide.md`: Dependency management guide
-- `typescript-esm-config.md`: TypeScript and ESM configuration details
-- Additional implementation and research documents
-
-## 🧪 Testing
-
-Run the test suite:
 ```bash
-npm test
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your API keys
 ```
 
-## 🤝 Contributing
+### Running the Servers
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+To start all servers at once:
 
-## 📝 License
+```bash
+# On Windows
+npm run start:all:windows
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+# On Unix/Linux/Mac
+npm run start:all
+```
 
-## 🔐 Security
+This will start:
+- HTTP Transport Server (port 3001)
+- SSE Transport Server (port 3002)
+- Web Interface (port 3003)
 
-- Environment variables and sensitive data are never committed to the repository
-- API keys should be kept secure and not shared
-- See `.env.example` for required environment variables
-- Branch protection rules are in place for the main branch
+To start individual servers:
 
-## 🙏 Acknowledgments
+```bash
+npm run start:http  # Start HTTP transport server
+npm run start:sse   # Start SSE transport server
+npm run start:web   # Start web interface
+```
 
-- Model Context Protocol team for the SDK
-- Perplexity AI for search capabilities
-- Google Gemini for AI features
-- Playwright team for browser automation capabilities 
+### Checking Server Health
+
+```bash
+npm run check
+```
+
+### Testing SSE Connection
+
+```bash
+npm run test:sse
+```
+
+## Development
+
+### Building
+
+```bash
+# Build all packages
+npm run build
+
+# Build specific packages
+npm run build:shared
+npm run build:server
+npm run build:client
+
+# Watch mode for development
+npm run build:watch
+```
+
+### Testing
+
+```bash
+# Run all tests
+npm test
+
+# Test specific packages
+npm run test:shared
+npm run test:server
+npm run test:client
+
+# Watch mode for testing
+npm run test:watch
+
+# Generate test coverage
+npm run test:coverage
+```
+
+### Linting
+
+```bash
+npm run lint
+```
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 

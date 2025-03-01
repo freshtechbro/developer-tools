@@ -9,3 +9,5 @@ Ask Perplexity and use cursor-tools to conduct a deep research on  all the clari
 
 Ask Gemini and use cursor-tools to think deeply about the solutions and create a comprehensive step by step plan to implement each of the solutions generated. Ensure to generate to the smallest step possible and implement easch step in the plan. After completing each phase/step, mention what was just completed and what the next steps are + phases remaining after these steps and continue.
 
+
+

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Transport Tester</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <h1>MCP Transport Tester</h1>
+        <p>Test both HTTP and SSE transport methods</p>
+    </header>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-button active" data-tab="setup">Setup</button>
+            <button class="tab-button" data-tab="sse">SSE Transport</button>
+            <button class="tab-button" data-tab="http">HTTP Transport</button>
+            <button class="tab-button" data-tab="logs">Logs</button>
+        </div>
+
+        <div class="tab-content active" id="setup">
+            <h2>Connection Setup</h2>
+            <div class="card">
+                <div class="form-group">
+                    <label for="http-url">HTTP Transport URL:</label>
+                    <input type="text" id="http-url" value="http://localhost:3001/mcp">
+                </div>
+                <div class="form-group">
+                    <label for="sse-url">SSE Transport URL:</label>
+                    <input type="text" id="sse-url" value="http://localhost:3002/mcp-sse">
+                </div>
+                <div class="form-group">
+                    <label for="client-id">Client ID (optional):</label>
+                    <input type="text" id="client-id" placeholder="Leave blank for auto-generated">
+                </div>
+                <div class="form-group">
+                    <button id="initialize-http" class="button">Initialize HTTP</button>
+                    <button id="connect-sse" class="button">Connect to SSE</button>
+                </div>
+                <div class="status-container">
+                    <div>
+                        <span>HTTP Status:</span>
+                        <span id="http-status" class="status">Not initialized</span>
+                    </div>
+                    <div>
+                        <span>SSE Status:</span>
+                        <span id="sse-status" class="status">Not connected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="sse">
+            <h2>SSE Transport</h2>
+            <div class="card">
+                <h3>Send Message via SSE</h3>
+                <div class="form-group">
+                    <label for="sse-method">Method:</label>
+                    <select id="sse-method">
+                        <option value="initialize">initialize</option>
+                        <option value="health-check">health-check</option>
+                        <option value="web-search">web-search</option>
+                        <option value="repo-analysis">repo-analysis</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sse-payload">Payload (JSON):</label>
+                    <textarea id="sse-payload">{}</textarea>
+                </div>
+                <div class="form-group">
+                    <button id="send-sse" class="button" disabled>Send via SSE</button>
+                </div>
+                <div class="form-group">
+                    <label>Connection Details:</label>
+                    <pre id="sse-connection-details"></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="http">
+            <h2>HTTP Transport</h2>
+            <div class="card">
+                <h3>Send Message via HTTP</h3>
+                <div class="form-group">
+                    <label for="http-method">Method:</label>
+                    <select id="http-method">
+                        <option value="initialize">initialize</option>
+                        <option value="health-check">health-check</option>
+                        <option value="web-search">web-search</option>
+                        <option value="repo-analysis">repo-analysis</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="http-payload">Payload (JSON):</label>
+                    <textarea id="http-payload">{}</textarea>
+                </div>
+                <div class="form-group">
+                    <button id="send-http" class="button" disabled>Send via HTTP</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="logs">
+            <h2>Logs</h2>
+            <div class="card">
+                <div class="form-group">
+                    <button id="clear-logs" class="button">Clear Logs</button>
+                </div>
+                <div class="logs-container">
+                    <div>
+                        <h3>Connection Events</h3>
+                        <pre id="connection-events"></pre>
+                    </div>
+                    <div>
+                        <h3>Received Messages</h3>
+                        <pre id="received-messages"></pre>
+                    </div>
+                    <div>
+                        <h3>Sent Messages</h3>
+                        <pre id="sent-messages"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/client.js"></script>
+</body>
+</html> 

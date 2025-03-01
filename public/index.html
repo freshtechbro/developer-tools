@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Tools Tester</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f7f9fc;
+        }
+        header {
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+        h1 {
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab-button {
+            padding: 0.5rem 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-right: 0.5rem;
+        }
+        .tab-button.active {
+            border-bottom: 3px solid #3498db;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .card {
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        textarea {
+            min-height: 100px;
+            font-family: monospace;
+        }
+        .button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .button:hover {
+            background-color: #2980b9;
+        }
+        .button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .status-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+        .status {
+            font-weight: bold;
+        }
+        .logs-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        pre {
+            background-color: #f4f6f9;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow: auto;
+            max-height: 300px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        @media (min-width: 768px) {
+            .logs-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Developer Tools Tester</h1>
+        <p>Test HTTP and SSE transport methods and utility tools</p>
+    </header>
+    
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-button active" data-tab="setup">Setup</button>
+            <button class="tab-button" data-tab="http">HTTP Transport</button>
+            <button class="tab-button" data-tab="sse">SSE Transport</button>
+            <button class="tab-button" data-tab="tools">Tools</button>
+            <button class="tab-button" data-tab="logs">Logs</button>
+        </div>
+
+        <div class="tab-content active" id="setup">
+            <h2>Connection Setup</h2>
+            <div class="card">
+                <div class="form-group">
+                    <label for="http-url">HTTP Transport URL:</label>
+                    <input type="text" id="http-url" value="http://localhost:3001/mcp">
+                </div>
+                <div class="form-group">
+                    <label for="sse-url">SSE Transport URL:</label>
+                    <input type="text" id="sse-url" value="http://localhost:3002/mcp-sse">
+                </div>
+            <div class="form-group">
+                    <label for="client-id">Client ID (optional):</label>
+                    <input type="text" id="client-id" placeholder="Leave blank for auto-generated">
+            </div>
+            <div class="form-group">
+                    <button id="initialize-http" class="button">Initialize HTTP</button>
+                    <button id="connect-sse" class="button">Connect to SSE</button>
+                </div>
+                <div class="status-container">
+                    <div>
+                        <span>HTTP Status:</span>
+                        <span id="http-status" class="status">Not initialized</span>
+                    </div>
+                    <div>
+                        <span>SSE Status:</span>
+                        <span id="sse-status" class="status">Not connected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="http">
+            <h2>HTTP Transport</h2>
+            <div class="card">
+                <h3>Send Message via HTTP</h3>
+                <div class="form-group">
+                    <label for="http-method">Method:</label>
+                    <select id="http-method">
+                        <option value="initialize">initialize</option>
+                        <option value="health-check">health-check</option>
+                        <option value="web-search">web-search</option>
+                        <option value="repo-analysis">repo-analysis</option>
+                        <option value="browser-automation">browser-automation</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="http-payload">Payload (JSON):</label>
+                    <textarea id="http-payload">{
+  "query": "how to use fetch API in JavaScript"
+}</textarea>
+                </div>
+                <div class="form-group">
+                    <button id="send-http" class="button">Send via HTTP</button>
+            </div>
+            <div class="form-group">
+                    <label>Response:</label>
+                    <pre id="http-response"></pre>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="sse">
+            <h2>SSE Transport</h2>
+            <div class="card">
+                <h3>Send Message via SSE</h3>
+                <div class="form-group">
+                    <label for="sse-method">Method:</label>
+                    <select id="sse-method">
+                        <option value="initialize">initialize</option>
+                        <option value="health-check">health-check</option>
+                        <option value="web-search">web-search</option>
+                        <option value="repo-analysis">repo-analysis</option>
+                        <option value="browser-automation">browser-automation</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sse-payload">Payload (JSON):</label>
+                    <textarea id="sse-payload">{
+  "query": "how to use fetch API in JavaScript"
+}</textarea>
+                </div>
+                <div class="form-group">
+                    <button id="send-sse" class="button">Send via SSE</button>
+                </div>
+                <div class="form-group">
+                    <label>Events:</label>
+                    <pre id="sse-events"></pre>
+                </div>
+            </div>
+            </div>
+            
+        <div class="tab-content" id="tools">
+            <h2>Available Tools</h2>
+            <div class="card">
+                <h3>Web Search</h3>
+                <div class="form-group">
+                    <label for="web-search-query">Search Query:</label>
+                    <input type="text" id="web-search-query" value="JavaScript async/await tutorial">
+                </div>
+                <div class="form-group">
+                    <button id="run-web-search" class="button">Run Web Search</button>
+                </div>
+                <div class="form-group">
+                    <label>Results:</label>
+                    <pre id="web-search-results"></pre>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Repository Analysis</h3>
+                <div class="form-group">
+                    <label for="repo-url">Repository URL or Path:</label>
+                    <input type="text" id="repo-url" value="https://github.com/username/repo">
+                </div>
+                <div class="form-group">
+                    <label for="repo-query">Analysis Query:</label>
+                    <input type="text" id="repo-query" value="Explain the project structure">
+                </div>
+                <div class="form-group">
+                    <button id="run-repo-analysis" class="button">Analyze Repository</button>
+                </div>
+                <div class="form-group">
+                    <label>Analysis Results:</label>
+                    <pre id="repo-analysis-results"></pre>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Browser Automation</h3>
+                <div class="form-group">
+                    <label for="browser-url">URL to Open:</label>
+                    <input type="text" id="browser-url" value="https://example.com">
+                </div>
+                <div class="form-group">
+                    <label for="browser-action">Action to Perform:</label>
+                    <input type="text" id="browser-action" value="Click on the first link">
+                </div>
+                <div class="form-group">
+                    <button id="run-browser-automation" class="button">Run Browser Automation</button>
+                </div>
+                <div class="form-group">
+                    <label>Results:</label>
+                    <pre id="browser-automation-results"></pre>
+                </div>
+            </div>
+            </div>
+            
+        <div class="tab-content" id="logs">
+            <h2>Logs</h2>
+            <div class="card">
+                <div class="form-group">
+                    <button id="clear-logs" class="button">Clear Logs</button>
+                </div>
+                <div class="logs-container">
+                    <div>
+                        <h3>Connection Events</h3>
+                        <pre id="connection-events"></pre>
+                    </div>
+                    <div>
+                        <h3>Requests & Responses</h3>
+                        <pre id="message-log"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Tab switching functionality
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                // Deactivate all tabs
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                // Activate selected tab
+                button.classList.add('active');
+                document.getElementById(button.dataset.tab).classList.add('active');
+            });
+        });
+        
+        // Log helper function
+        function logMessage(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const timestamp = new Date().toISOString();
+            const logEntry = `[${timestamp}] [${type.toUpperCase()}] ${message}\n`;
+            container.textContent = logEntry + container.textContent;
+        }
+        
+        // Connection Management
+        document.getElementById('initialize-http').addEventListener('click', () => {
+            const url = document.getElementById('http-url').value;
+            const clientId = document.getElementById('client-id').value || 'client-' + Math.random().toString(36).substring(2, 10);
+            
+            logMessage('connection-events', `Initializing HTTP connection to ${url} with client ID ${clientId}`);
+            
+            // Send initialize request
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    method: 'initialize',
+                    params: {
+                        client_id: clientId
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('http-status').textContent = 'Connected';
+                logMessage('connection-events', `HTTP connection initialized: ${JSON.stringify(data)}`, 'success');
+            })
+            .catch(error => {
+                document.getElementById('http-status').textContent = 'Failed to connect';
+                logMessage('connection-events', `HTTP connection error: ${error.message}`, 'error');
+            });
+        });
+        
+        document.getElementById('connect-sse').addEventListener('click', () => {
+            const url = document.getElementById('sse-url').value;
+            const clientId = document.getElementById('client-id').value || 'client-' + Math.random().toString(36).substring(2, 10);
+            
+            logMessage('connection-events', `Connecting to SSE at ${url} with client ID ${clientId}`);
+            
+            let eventSource;
+            try {
+                eventSource = new EventSource(url + '?client_id=' + clientId);
+                
+                eventSource.onopen = () => {
+                    document.getElementById('sse-status').textContent = 'Connected';
+                    logMessage('connection-events', 'SSE connection opened', 'success');
+                };
+                
+                eventSource.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    logMessage('sse-events', `Received: ${JSON.stringify(data)}`, 'received');
+                    logMessage('message-log', `SSE message: ${JSON.stringify(data)}`, 'received');
+                };
+                
+                eventSource.onerror = (error) => {
+                    document.getElementById('sse-status').textContent = 'Error';
+                    logMessage('connection-events', `SSE connection error: ${JSON.stringify(error)}`, 'error');
+                    eventSource.close();
+                };
+                
+                // Store the event source for later use
+                window.currentEventSource = eventSource;
+            } catch (error) {
+                document.getElementById('sse-status').textContent = 'Failed to connect';
+                logMessage('connection-events', `SSE connection error: ${error.message}`, 'error');
+            }
+        });
+        
+        // HTTP Transport
+        document.getElementById('send-http').addEventListener('click', () => {
+            const url = document.getElementById('http-url').value;
+            const method = document.getElementById('http-method').value;
+            let payload;
+            
+            try {
+                payload = JSON.parse(document.getElementById('http-payload').value);
+            } catch (error) {
+                logMessage('message-log', `Invalid JSON payload: ${error.message}`, 'error');
+                return;
+            }
+            
+            const requestBody = {
+                method: method,
+                params: payload
+            };
+            
+            logMessage('message-log', `HTTP request: ${JSON.stringify(requestBody)}`, 'sent');
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('http-response').textContent = JSON.stringify(data, null, 2);
+                logMessage('message-log', `HTTP response: ${JSON.stringify(data)}`, 'received');
+            })
+            .catch(error => {
+                document.getElementById('http-response').textContent = `Error: ${error.message}`;
+                logMessage('message-log', `HTTP error: ${error.message}`, 'error');
+            });
+        });
+        
+        // SSE Transport
+        document.getElementById('send-sse').addEventListener('click', () => {
+            const url = document.getElementById('http-url').value;
+            const method = document.getElementById('sse-method').value;
+            let payload;
+            
+            try {
+                payload = JSON.parse(document.getElementById('sse-payload').value);
+            } catch (error) {
+                logMessage('message-log', `Invalid JSON payload: ${error.message}`, 'error');
+                return;
+            }
+            
+            const requestBody = {
+                method: method,
+                params: payload
+            };
+            
+            logMessage('message-log', `SSE-initiated request: ${JSON.stringify(requestBody)}`, 'sent');
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => response.json())
+            .then(data => {
+                logMessage('message-log', `SSE-initiated response: ${JSON.stringify(data)}`, 'received');
+            })
+            .catch(error => {
+                logMessage('message-log', `SSE-initiated error: ${error.message}`, 'error');
+            });
+        });
+        
+        // Tool implementations
+        document.getElementById('run-web-search').addEventListener('click', () => {
+            const url = document.getElementById('http-url').value;
+            const query = document.getElementById('web-search-query').value;
+            
+            const requestBody = {
+                method: 'web-search',
+                params: {
+                    query: query
+                }
+            };
+            
+            logMessage('message-log', `Web search request: ${JSON.stringify(requestBody)}`, 'sent');
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('web-search-results').textContent = JSON.stringify(data, null, 2);
+                logMessage('message-log', `Web search response received`, 'received');
+            })
+            .catch(error => {
+                document.getElementById('web-search-results').textContent = `Error: ${error.message}`;
+                logMessage('message-log', `Web search error: ${error.message}`, 'error');
+            });
+        });
+        
+        document.getElementById('run-repo-analysis').addEventListener('click', () => {
+            const url = document.getElementById('http-url').value;
+            const repoUrl = document.getElementById('repo-url').value;
+            const query = document.getElementById('repo-query').value;
+            
+            const requestBody = {
+                method: 'repo-analysis',
+                params: {
+                    repository_url: repoUrl,
+                    query: query
+                }
+            };
+            
+            logMessage('message-log', `Repo analysis request: ${JSON.stringify(requestBody)}`, 'sent');
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('repo-analysis-results').textContent = JSON.stringify(data, null, 2);
+                logMessage('message-log', `Repo analysis response received`, 'received');
+            })
+            .catch(error => {
+                document.getElementById('repo-analysis-results').textContent = `Error: ${error.message}`;
+                logMessage('message-log', `Repo analysis error: ${error.message}`, 'error');
+            });
+        });
+        
+        document.getElementById('run-browser-automation').addEventListener('click', () => {
+            const url = document.getElementById('http-url').value;
+            const browserUrl = document.getElementById('browser-url').value;
+            const action = document.getElementById('browser-action').value;
+            
+            const requestBody = {
+                method: 'browser-automation',
+                params: {
+                    url: browserUrl,
+                    action: action
+                }
+            };
+            
+            logMessage('message-log', `Browser automation request: ${JSON.stringify(requestBody)}`, 'sent');
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('browser-automation-results').textContent = JSON.stringify(data, null, 2);
+                logMessage('message-log', `Browser automation response received`, 'received');
+            })
+            .catch(error => {
+                document.getElementById('browser-automation-results').textContent = `Error: ${error.message}`;
+                logMessage('message-log', `Browser automation error: ${error.message}`, 'error');
+            });
+        });
+        
+        // Clear logs
+        document.getElementById('clear-logs').addEventListener('click', () => {
+            document.getElementById('connection-events').textContent = '';
+            document.getElementById('message-log').textContent = '';
+            document.getElementById('sse-events').textContent = '';
+        });
+        
+        // Initialize with welcome message
+        logMessage('connection-events', 'Developer Tools Interface loaded', 'info');
+    </script>
+</body>
+</html> 

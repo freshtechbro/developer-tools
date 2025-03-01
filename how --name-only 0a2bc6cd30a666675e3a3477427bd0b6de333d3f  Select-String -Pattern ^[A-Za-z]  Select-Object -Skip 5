@@ -1,0 +1,46 @@
+[33mcommit 0a2bc6cd30a666675e3a3477427bd0b6de333d3f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: FreshTechBro <oladotun.olatunji@gmail.com>
+Date:   Tue Feb 25 12:52:15 2025 -0600
+
+    Major project enhancements: Implement services layer, update tools, add REST API, and improve docs
+
+A	.cursor/rules/architecturemode.mdc
+A	.cursor/rules/plannermode.mdc
+M	.env.example
+M	.repomix-output.txt
+M	README.md
+A	docs/web-search-tool.md
+M	jest.config.js
+A	local-research/codebase-analysis.md
+A	mcp-server/.env.example
+A	mcp-server/.eslintrc.json
+M	mcp-server/.gitignore
+A	mcp-server/.husky/pre-commit
+A	mcp-server/.prettierrc
+A	mcp-server/jest.config.js
+M	mcp-server/package.json
+A	mcp-server/src/capabilities/tools/__tests__/web-search.test.ts
+M	mcp-server/src/config/index.ts
+A	mcp-server/src/gemini/__tests__/service.test.ts
+A	mcp-server/src/gemini/config.ts
+A	mcp-server/src/gemini/service.ts
+A	mcp-server/src/utils/retry.ts
+M	mcp-server/tsconfig.json
+M	package.json
+A	src/capabilities/tools/__tests__/web-search.test.ts
+A	src/capabilities/tools/browser-automation.ts
+A	src/capabilities/tools/repo-analysis.ts
+M	src/capabilities/tools/web-search.ts
+M	src/config/index.ts
+A	src/resources/search-history.resource.ts
+A	src/routes/search-history.routes.ts
+M	src/server.ts
+A	src/services/README.md
+A	src/services/browser.service.ts
+A	src/services/file-storage.service.ts
+A	src/services/gemini.service.ts
+A	src/services/perplexity.service.ts
+M	src/test-client.ts
+A	src/test/setup.ts
+A	src/types/tool.ts
+M	tsconfig.json

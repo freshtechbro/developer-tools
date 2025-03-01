@@ -7,6 +7,7 @@ package-lock.json
 .env.*
 !.env.example
 .cursorrules
+local-research/
 
 
 # Build outputs
