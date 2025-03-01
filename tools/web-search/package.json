@@ -1,0 +1,43 @@
+{
+  "name": "@developer-tools/web-search",
+  "version": "0.3.0",
+  "description": "Web search tool using Perplexity AI",
+  "type": "module",
+  "main": "web-search.js",
+  "bin": {
+    "web-search": "bin.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "start": "node bin.js"
+  },
+  "dependencies": {
+    "@developer-tools/server": "workspace:*",
+    "@developer-tools/shared": "workspace:*",
+    "axios": "^1.6.5",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1",
+    "zod": "^3.22.4",
+    "sanitize-html": "^2.11.0",
+    "@google/generative-ai": "^0.2.1",
+    "openai": "^4.24.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "*.js",
+    "*.d.ts"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+} 

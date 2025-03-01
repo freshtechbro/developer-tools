@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import { v4 as uuidv4 } from 'uuid';
+import { webSearchTool } from './stubs/web-search.js';
+import { commandInterceptorTool } from './stubs/command-interceptor.js';
+import { logger } from './stubs/logger.js';
 
 const app = express();
 const PORT = 3002;
@@ -160,9 +163,12 @@ function sendSSEMessage(res, data) {
 }
 
 // Handle POST requests to the SSE endpoint (for testing and sending messages)
-app.post('/mcp-sse', (req, res) => {
+app.post('/mcp-sse', async (req, res) => {
   const message = req.body;
   console.log('Received message to broadcast:', message);
+  
+  // Get client ID from request for targeted messaging
+  const clientId = message.params?.clientId || req.query.clientId || 'all';
   
   // Validate message format
   if (!message || !message.jsonrpc || !message.method) {
@@ -174,6 +180,19 @@ app.post('/mcp-sse', (req, res) => {
         message: 'Invalid Request: Missing required JSON-RPC fields'
       }
     });
+  }
+  
+  // Record request in log
+  requestLog.unshift({
+    timestamp: new Date().toISOString(),
+    clientId,
+    method: message.method,
+    id: message.id,
+    query: message.params?.query
+  });
+  
+  if (requestLog.length > MAX_LOG_SIZE) {
+    requestLog.pop();
   }
   
   // Generate response
@@ -188,9 +207,10 @@ app.post('/mcp-sse', (req, res) => {
   
   // Special handling for specific method types
   if (message.method === 'initialize') {
-    response.result.sessionId = uuidv4();
+    response.result.sessionId = clientId !== 'all' ? clientId : uuidv4();
     response.result.capabilities = {
       webSearch: true,
+      commandInterceptor: true,
       codeAnalysis: true,
       sse: true
     };
@@ -198,22 +218,287 @@ app.post('/mcp-sse', (req, res) => {
     response.result.status = 'healthy';
     response.result.connections = activeConnections.size;
   } else if (message.method === 'web-search') {
-    response.result.query = message.params?.query || 'default query';
-    response.result.results = [
-      { title: 'Sample result 1', url: 'https://example.com/1' },
-      { title: 'Sample result 2', url: 'https://example.com/2' }
-    ];
-  }
-  
-  // Broadcast the message to all active SSE connections
-  activeConnections.forEach((info, id) => {
-    // Don't send initialization responses as broadcasts
-    if (message.method !== 'initialize') {
-      sendSSEMessage(info.res, message);
-      info.messageCount++;
-      info.lastMessageTime = new Date().toISOString();
+    // Handle web search request
+    try {
+      // Log request details for debugging
+      logger.info(`SSE Transport: Processing web search request`, { 
+        query: message.params?.query, 
+        provider: message.params?.provider,
+        clientId
+      });
+      
+      // Start processing time measurement
+      const startTime = Date.now();
+      
+      // Find the client connection if specific
+      let clientConnection = null;
+      if (clientId !== 'all' && activeConnections.has(clientId)) {
+        clientConnection = activeConnections.get(clientId);
+        
+        // Send a processing message to indicate the request is being handled
+        const processingMsg = {
+          jsonrpc: '2.0',
+          id: message.id,
+          method: 'web-search-status',
+          params: {
+            status: 'processing',
+            timestamp: new Date().toISOString(),
+            query: message.params?.query
+          }
+        };
+        
+        sendSSEMessage(clientConnection.res, processingMsg);
+        clientConnection.messageCount++;
+        clientConnection.lastMessageTime = new Date().toISOString();
+      }
+      
+      // Add client context to the request
+      const requestWithContext = {
+        ...message.params,
+        sessionContext: {
+          clientId,
+          transport: 'sse',
+          userAgent: clientConnection?.userAgent || req.headers['user-agent']
+        }
+      };
+      
+      // Execute web search with enhanced parameters
+      const result = await webSearchTool.execute(requestWithContext);
+      
+      // Calculate processing time
+      const processingTime = Date.now() - startTime;
+      
+      // Log success with processing time
+      logger.info(`SSE Transport: Web search completed`, { 
+        clientId, 
+        processingTime: `${processingTime}ms`,
+        provider: result.metadata?.provider || 'unknown',
+        cached: result.metadata?.cached || false
+      });
+      
+      // Create response message
+      const responseMessage = {
+        jsonrpc: '2.0',
+        id: message.id,
+        result: result
+      };
+      
+      // Send to specific client or broadcast to all
+      if (clientId !== 'all' && activeConnections.has(clientId)) {
+        const connection = activeConnections.get(clientId);
+        sendSSEMessage(connection.res, responseMessage);
+        connection.messageCount++;
+        connection.lastMessageTime = new Date().toISOString();
+        
+        // Also send a completion notification
+        const completionMsg = {
+          jsonrpc: '2.0',
+          method: 'web-search-status',
+          params: {
+            status: 'completed',
+            timestamp: new Date().toISOString(),
+            processingTime,
+            provider: result.metadata?.provider,
+            cached: result.metadata?.cached
+          }
+        };
+        
+        sendSSEMessage(connection.res, completionMsg);
+        connection.messageCount++;
+      } else {
+        // Broadcast to all
+        activeConnections.forEach(info => {
+          sendSSEMessage(info.res, responseMessage);
+          info.messageCount++;
+          info.lastMessageTime = new Date().toISOString();
+        });
+      }
+      
+      // Set response for the HTTP POST request
+      response.result.status = 'completed';
+      response.result.message = 'Web search completed successfully';
+      response.result.processingTime = processingTime;
+      
+    } catch (error) {
+      logger.error(`SSE Transport: Web search failed`, { 
+        error: error.message, 
+        stack: error.stack,
+        clientId,
+        query: message.params?.query
+      });
+      
+      const errorMessage = {
+        jsonrpc: '2.0',
+        id: message.id,
+        error: {
+          code: error.code || -32000,
+          message: `Web search failed: ${error instanceof Error ? error.message : String(error)}`,
+          data: {
+            clientId,
+            errorType: error.name,
+            provider: error.provider
+          }
+        }
+      };
+      
+      // Send error to the specific client
+      if (clientId !== 'all' && activeConnections.has(clientId)) {
+        const connection = activeConnections.get(clientId);
+        sendSSEMessage(connection.res, errorMessage);
+      } else {
+        // Send to all clients if no specific client
+        activeConnections.forEach(info => {
+          sendSSEMessage(info.res, errorMessage);
+        });
+      }
+      
+      // Set error response for the HTTP POST request
+      return res.status(400).json(errorMessage);
     }
-  });
+      
+    // Set a temporary response for the HTTP POST request (this will be hit only if no error)
+    response.result.status = 'processing';
+    response.result.message = 'Web search request is being processed';
+    
+  } else if (message.method === 'command-interceptor') {
+    // Handle command interceptor request
+    try {
+      // Log request details
+      logger.info(`SSE Transport: Processing command interceptor request`, { 
+        message: message.params?.message,
+        clientId
+      });
+      
+      // Start processing time measurement
+      const startTime = Date.now();
+      
+      // Find the client connection if specific
+      let clientConnection = null;
+      if (clientId !== 'all' && activeConnections.has(clientId)) {
+        clientConnection = activeConnections.get(clientId);
+        
+        // Send a processing message to indicate the request is being handled
+        const processingMsg = {
+          jsonrpc: '2.0',
+          id: message.id,
+          method: 'command-status',
+          params: {
+            status: 'processing',
+            timestamp: new Date().toISOString(),
+            message: message.params?.message
+          }
+        };
+        
+        sendSSEMessage(clientConnection.res, processingMsg);
+        clientConnection.messageCount++;
+        clientConnection.lastMessageTime = new Date().toISOString();
+      }
+      
+      // Add client context to the request
+      const requestWithContext = {
+        ...message.params,
+        sessionContext: {
+          clientId,
+          transport: 'sse',
+          userAgent: clientConnection?.userAgent || req.headers['user-agent']
+        }
+      };
+      
+      // Execute command interceptor with enhanced context
+      const result = await commandInterceptorTool.execute(requestWithContext);
+      
+      // Calculate processing time
+      const processingTime = Date.now() - startTime;
+      
+      // Log success with processing time
+      logger.info(`SSE Transport: Command interceptor completed`, { 
+        clientId, 
+        processingTime: `${processingTime}ms`,
+        commandFound: result !== null
+      });
+      
+      // Create response message
+      const responseMessage = {
+        jsonrpc: '2.0',
+        id: message.id,
+        result: result
+      };
+      
+      // Send to specific client or broadcast to all
+      if (clientId !== 'all' && activeConnections.has(clientId)) {
+        const connection = activeConnections.get(clientId);
+        sendSSEMessage(connection.res, responseMessage);
+        connection.messageCount++;
+        connection.lastMessageTime = new Date().toISOString();
+        
+        // Also send a completion notification
+        const completionMsg = {
+          jsonrpc: '2.0',
+          method: 'command-status',
+          params: {
+            status: 'completed',
+            timestamp: new Date().toISOString(),
+            processingTime,
+            commandFound: result !== null
+          }
+        };
+        
+        sendSSEMessage(connection.res, completionMsg);
+        connection.messageCount++;
+      } else {
+        // Broadcast to all
+        activeConnections.forEach(info => {
+          sendSSEMessage(info.res, responseMessage);
+          info.messageCount++;
+          info.lastMessageTime = new Date().toISOString();
+        });
+      }
+      
+      // Set response for the HTTP POST request
+      response.result.status = 'completed';
+      response.result.message = 'Command interceptor completed successfully';
+      response.result.processingTime = processingTime;
+      
+    } catch (error) {
+      logger.error(`SSE Transport: Command interceptor failed`, { 
+        error: error.message, 
+        stack: error.stack,
+        clientId,
+        message: message.params?.message
+      });
+      
+      const errorMessage = {
+        jsonrpc: '2.0',
+        id: message.id,
+        error: {
+          code: error.code || -32000,
+          message: `Command interception failed: ${error instanceof Error ? error.message : String(error)}`,
+          data: {
+            clientId,
+            errorType: error.name
+          }
+        }
+      };
+      
+      // Send error to the specific client
+      if (clientId !== 'all' && activeConnections.has(clientId)) {
+        const connection = activeConnections.get(clientId);
+        sendSSEMessage(connection.res, errorMessage);
+      } else {
+        // Send to all clients if no specific client
+        activeConnections.forEach(info => {
+          sendSSEMessage(info.res, errorMessage);
+        });
+      }
+      
+      // Set error response for the HTTP POST request
+      return res.status(400).json(errorMessage);
+    }
+      
+    // Set a temporary response for the HTTP POST request
+    response.result.status = 'processing';
+    response.result.message = 'Command interception request is being processed';
+  }
   
   // Return response to the POST request
   res.json(response);

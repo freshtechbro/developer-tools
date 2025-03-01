@@ -13,7 +13,8 @@ export default {
     '^(\\.{1,2}/.*)\\.js$': '$1',
     '^@developer-tools/shared/(.*)$': '<rootDir>/packages/shared/src/$1',
     '^@developer-tools/server/(.*)$': '<rootDir>/packages/server/src/$1',
-    '^@developer-tools/client/(.*)$': '<rootDir>/packages/client/src/$1'
+    '^@developer-tools/client/(.*)$': '<rootDir>/packages/client/src/$1',
+    '^@developer-tools/web-search/(.*)$': '<rootDir>/tools/web-search/$1'
   },
   
   // Setup files that run before each test
@@ -26,9 +27,12 @@ export default {
   collectCoverage: true,
   collectCoverageFrom: [
     'packages/*/src/**/*.{ts,tsx}',
+    'tools/*/src/**/*.{ts,tsx}',
+    'tools/*.ts',
     '!packages/*/src/**/*.d.ts',
     '!packages/*/src/**/__tests__/**',
-    '!packages/*/src/**/__mocks__/**'
+    '!packages/*/src/**/__mocks__/**',
+    '!tools/*/tests/**'
   ],
   
   // Projects for monorepo setup
@@ -51,6 +55,14 @@ export default {
         '<rootDir>/packages/server/src/services/__tests__/gemini.service.test.ts',
         '<rootDir>/packages/server/src/services/__tests__/perplexity.service.test.ts'
       ]
+    },
+    {
+      displayName: 'tools',
+      testMatch: [
+        '<rootDir>/tools/**/tests/**/*.test.ts',
+        '<rootDir>/tools/**/__tests__/**/*.test.ts'
+      ],
+      testPathIgnorePatterns: ['/node_modules/']
     }
   ],
   
@@ -85,6 +97,12 @@ export default {
       functions: 90,
       lines: 90,
       statements: 90
+    },
+    './tools/web-search/web-search.ts': {
+      branches: 70,
+      functions: 80,
+      lines: 80,
+      statements: 80
     }
   }
 }; 

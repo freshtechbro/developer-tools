@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Search Tool Tester</title>
+  <style>
+    :root {
+      --primary-color: #4a6cf7;
+      --secondary-color: #6a82fb;
+      --background-color: #f9fafc;
+      --card-color: #ffffff;
+      --text-color: #333333;
+      --border-color: #e2e8f0;
+      --error-color: #ef4444;
+      --success-color: #10b981;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: var(--text-color);
+      background-color: var(--background-color);
+      padding: 0;
+      margin: 0;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1rem;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--primary-color);
+    }
+    
+    .description {
+      color: #666;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .card {
+      background: var(--card-color);
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .card-title {
+      font-size: 1.25rem;
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      color: var(--primary-color);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: var(--secondary-color);
+    }
+    
+    button:disabled {
+      background-color: #a0aec0;
+      cursor: not-allowed;
+    }
+    
+    .checkbox-group {
+      margin-top: 0.5rem;
+    }
+    
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+      margin-right: 0.5rem;
+    }
+    
+    .response-container {
+      margin-top: 2rem;
+    }
+    
+    .results {
+      background-color: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 1rem;
+      white-space: pre-wrap;
+      max-height: 500px;
+      overflow-y: auto;
+      font-family: 'Consolas', 'Courier New', monospace;
+    }
+    
+    .metadata {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .metadata table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .metadata th, .metadata td {
+      padding: 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .error {
+      color: var(--error-color);
+      margin-top: 1rem;
+      font-weight: 500;
+    }
+    
+    .success {
+      color: var(--success-color);
+      margin-top: 1rem;
+      font-weight: 500;
+    }
+    
+    .status {
+      margin-top: 1rem;
+      font-style: italic;
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .tab {
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      font-weight: 500;
+    }
+    
+    .tab.active {
+      border-bottom: 2px solid var(--primary-color);
+      color: var(--primary-color);
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .processing {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid rgba(74, 108, 247, 0.25);
+      border-top-color: var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 0.5rem;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Web Search Tool Tester</h1>
+      <p class="description">Test the enhanced web search tool with different providers and parameters</p>
+    </header>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="web-search">Web Search</div>
+      <div class="tab" data-tab="command-interceptor">Command Interceptor</div>
+    </div>
+    
+    <div class="tab-content active" id="web-search-content">
+      <div class="card">
+        <h2 class="card-title">Web Search Parameters</h2>
+        
+        <div class="form-group">
+          <label for="search-query">Search Query:</label>
+          <input type="text" id="search-query" placeholder="Enter your search query">
+        </div>
+        
+        <div class="form-group">
+          <label for="provider">Provider:</label>
+          <select id="provider">
+            <option value="perplexity">Perplexity</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="openai">OpenAI</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="format">Output Format:</label>
+          <select id="format">
+            <option value="text">Text</option>
+            <option value="markdown" selected>Markdown</option>
+            <option value="json">JSON</option>
+            <option value="html">HTML</option>
+          </select>
+        </div>
+        
+        <div class="checkbox-group">
+          <div class="checkbox-container">
+            <input type="checkbox" id="detailed" checked>
+            <label for="detailed">Detailed Results</label>
+          </div>
+          
+          <div class="checkbox-container">
+            <input type="checkbox" id="no-cache">
+            <label for="no-cache">Bypass Cache</label>
+          </div>
+          
+          <div class="checkbox-container">
+            <input type="checkbox" id="include-metadata" checked>
+            <label for="include-metadata">Include Metadata</label>
+          </div>
+        </div>
+        
+        <button id="search-button">Search</button>
+      </div>
+      
+      <div class="response-container" id="web-search-response" style="display: none;">
+        <div class="card">
+          <h2 class="card-title">Search Results</h2>
+          <div id="status-message" class="status"></div>
+          <div id="search-results" class="results"></div>
+          
+          <div id="metadata-section" class="metadata" style="display: none;">
+            <h3>Response Metadata</h3>
+            <table>
+              <tr>
+                <th>Provider</th>
+                <td id="provider-value">-</td>
+              </tr>
+              <tr>
+                <th>Cached</th>
+                <td id="cached-value">-</td>
+              </tr>
+              <tr>
+                <th>Processing Time</th>
+                <td id="processing-time">-</td>
+              </tr>
+              <tr>
+                <th>Token Usage</th>
+                <td id="token-usage">-</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="command-interceptor-content">
+      <div class="card">
+        <h2 class="card-title">Command Interceptor</h2>
+        
+        <div class="form-group">
+          <label for="command-message">Message with Command:</label>
+          <input type="text" id="command-message" placeholder="Enter a message with a command (e.g., dt-web 'What is quantum computing?')">
+        </div>
+        
+        <button id="command-button">Process Command</button>
+      </div>
+      
+      <div class="response-container" id="command-response" style="display: none;">
+        <div class="card">
+          <h2 class="card-title">Command Results</h2>
+          <div id="command-status-message" class="status"></div>
+          <div id="command-results" class="results"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // DOM elements
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const searchButton = document.getElementById('search-button');
+    const commandButton = document.getElementById('command-button');
+    const searchResponseContainer = document.getElementById('web-search-response');
+    const commandResponseContainer = document.getElementById('command-response');
+    const statusMessage = document.getElementById('status-message');
+    const commandStatusMessage = document.getElementById('command-status-message');
+    const searchResults = document.getElementById('search-results');
+    const commandResults = document.getElementById('command-results');
+    const metadataSection = document.getElementById('metadata-section');
+    
+    // API endpoints
+    const httpEndpoint = 'http://localhost:3001/mcp';
+    const testServer = 'http://localhost:3003/api/command';
+    
+    // Tab switching
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        
+        tab.classList.add('active');
+        const tabId = `${tab.dataset.tab}-content`;
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+    
+    // Web search function
+    searchButton.addEventListener('click', async () => {
+      const query = document.getElementById('search-query').value.trim();
+      
+      if (!query) {
+        alert('Please enter a search query');
+        return;
+      }
+      
+      // Get parameters
+      const provider = document.getElementById('provider').value;
+      const format = document.getElementById('format').value;
+      const detailed = document.getElementById('detailed').checked;
+      const noCache = document.getElementById('no-cache').checked;
+      const includeMetadata = document.getElementById('include-metadata').checked;
+      
+      // Show response container and update status
+      searchResponseContainer.style.display = 'block';
+      statusMessage.innerHTML = 'Processing search... <span class="processing"></span>';
+      searchResults.textContent = '';
+      metadataSection.style.display = 'none';
+      
+      try {
+        // Disable search button
+        searchButton.disabled = true;
+        
+        // Start timing
+        const startTime = performance.now();
+        
+        // Option 1: Try our HTTP transport endpoint
+        try {
+          const response = await fetch(httpEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: `search-${Date.now()}`,
+              method: 'web-search',
+              params: {
+                query,
+                provider,
+                format,
+                detailed,
+                noCache,
+                includeMetadata
+              }
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.error) {
+            throw new Error(data.error.message || 'Unknown error');
+          }
+          
+          // Calculate duration
+          const duration = Math.round(performance.now() - startTime);
+          
+          // Display results
+          displayWebSearchResults(data.result, duration);
+        } catch (error) {
+          // Option 2: Fall back to test server
+          console.log('HTTP transport failed, falling back to test server', error);
+          
+          const response = await fetch(testServer, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              command: 'web-search',
+              query
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || 'Unknown error');
+          }
+          
+          // Calculate duration
+          const duration = Math.round(performance.now() - startTime);
+          
+          // Display results from test server
+          displayWebSearchResults({
+            searchResults: data.results,
+            metadata: data.metadata
+          }, duration);
+        }
+      } catch (error) {
+        // Handle errors
+        statusMessage.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+        searchResults.textContent = 'Failed to execute search. Please try again.';
+      } finally {
+        // Re-enable search button
+        searchButton.disabled = false;
+      }
+    });
+    
+    // Command interceptor function
+    commandButton.addEventListener('click', async () => {
+      const message = document.getElementById('command-message').value.trim();
+      
+      if (!message) {
+        alert('Please enter a message');
+        return;
+      }
+      
+      // Show response container and update status
+      commandResponseContainer.style.display = 'block';
+      commandStatusMessage.innerHTML = 'Processing command... <span class="processing"></span>';
+      commandResults.textContent = '';
+      
+      try {
+        // Disable command button
+        commandButton.disabled = true;
+        
+        // Option 1: Try our HTTP transport endpoint
+        try {
+          const response = await fetch(httpEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: `command-${Date.now()}`,
+              method: 'command-interceptor',
+              params: { message }
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.error) {
+            throw new Error(data.error.message || 'Unknown error');
+          }
+          
+          // Display results
+          displayCommandResults(data.result);
+        } catch (error) {
+          // Option 2: Fall back to test server
+          console.log('HTTP transport failed, falling back to test server', error);
+          
+          const response = await fetch(testServer, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              command: 'command-interceptor',
+              query: message
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || 'Unknown error');
+          }
+          
+          // Display results from test server
+          displayCommandResults({
+            commandType: 'test',
+            message: data.message,
+            timestamp: data.timestamp
+          });
+        }
+      } catch (error) {
+        // Handle errors
+        commandStatusMessage.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+        commandResults.textContent = 'Failed to process command. Please try again.';
+      } finally {
+        // Re-enable command button
+        commandButton.disabled = false;
+      }
+    });
+    
+    // Function to display web search results
+    function displayWebSearchResults(result, duration) {
+      if (!result) {
+        statusMessage.innerHTML = '<span class="error">No results returned</span>';
+        return;
+      }
+      
+      // Update status message
+      statusMessage.innerHTML = `<span class="success">Search completed in ${duration}ms</span>`;
+      
+      // Display search results
+      searchResults.textContent = result.searchResults;
+      
+      // Display metadata if available
+      if (result.metadata) {
+        metadataSection.style.display = 'block';
+        document.getElementById('provider-value').textContent = result.metadata.provider || 'Unknown';
+        document.getElementById('cached-value').textContent = result.metadata.cached ? 'Yes' : 'No';
+        document.getElementById('processing-time').textContent = `${duration}ms`;
+        
+        const tokenUsage = result.metadata.tokenUsage;
+        if (tokenUsage) {
+          document.getElementById('token-usage').textContent = 
+            `Total: ${tokenUsage.totalTokens} (Prompt: ${tokenUsage.promptTokens}, Completion: ${tokenUsage.completionTokens})`;
+        } else {
+          document.getElementById('token-usage').textContent = 'Not available';
+        }
+      }
+    }
+    
+    // Function to display command results
+    function displayCommandResults(result) {
+      if (!result) {
+        commandStatusMessage.innerHTML = '<span class="error">No command detected</span>';
+        commandResults.textContent = 'No command was found in the message';
+        return;
+      }
+      
+      // Update status message
+      commandStatusMessage.innerHTML = '<span class="success">Command processed successfully</span>';
+      
+      // Display results
+      if (result.commandType === 'web-search' && result.searchResults) {
+        commandResults.textContent = result.searchResults;
+      } else {
+        commandResults.textContent = JSON.stringify(result, null, 2);
+      }
+    }
+    
+    // Initial setup - load with a sample query
+    document.getElementById('search-query').value = 'What is the capital of France?';
+    document.getElementById('command-message').value = 'dt-web What is quantum computing?';
+  </script>
+</body>
+</html> 

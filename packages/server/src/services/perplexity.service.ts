@@ -15,30 +15,83 @@ export interface SearchResult {
       completionTokens?: number;
       totalTokens?: number;
     }
+    sources?: Array<{
+      title?: string;
+      url?: string;
+      snippet?: string;
+    }>
+  }
+}
+
+export interface PerplexityServiceOptions {
+  apiKey?: string;
+  rateLimitConfig?: {
+    maxTokens: number;
+    refillRate: number;
   }
 }
 
 export class PerplexityService {
   private apiKey: string;
-  private rateLimiter: RateLimiter;
+  private rateLimiter: RateLimiter | null = null;
+  private rateLimitConfig: {
+    maxTokens: number;
+    refillRate: number;
+  };
   
-  constructor(apiKey?: string) {
-    this.apiKey = apiKey || config.perplexityApiKey || '';
+  constructor(options?: PerplexityServiceOptions) {
+    this.apiKey = options?.apiKey || config.perplexityApiKey || '';
     
-    // Create a rate limiter for Perplexity API
-    // Default values: 20 requests per minute (1 every 3 seconds)
-    this.rateLimiter = new RateLimiter('perplexity-api', {
-      maxTokens: 20,
-      refillRate: 0.33,  // 1 token per 3 seconds
-      waitForTokens: true,
-      maxWaitTime: 60000 // 1 minute max wait time
-    });
+    // Set rate limit configuration
+    this.rateLimitConfig = options?.rateLimitConfig || {
+      maxTokens: config.rateLimits?.perplexity?.maxTokens || 20,
+      refillRate: config.rateLimits?.perplexity?.refillRate || 0.33
+    };
     
-    logger.debug("Perplexity service initialized with rate limiter", {
+    logger.debug("Perplexity service initialized", {
       service: 'perplexity',
-      maxTokens: 20,
-      refillRate: 0.33
+      hasApiKey: !!this.apiKey,
+      rateLimitConfig: this.rateLimitConfig
     });
+  }
+  
+  /**
+   * Initialize the service (create rate limiter)
+   */
+  async initialize(): Promise<void> {
+    try {
+      // Create a rate limiter for Perplexity API
+      this.rateLimiter = new RateLimiter('perplexity', {
+        maxTokens: this.rateLimitConfig.maxTokens,
+        refillRate: this.rateLimitConfig.refillRate,
+        waitForTokens: true,
+        maxWaitTime: 60000 // 1 minute max wait time
+      });
+      
+      logger.debug("Perplexity service rate limiter initialized", {
+        service: 'perplexity',
+        maxTokens: this.rateLimitConfig.maxTokens,
+        refillRate: this.rateLimitConfig.refillRate
+      });
+    } catch (error) {
+      logger.error("Failed to initialize PerplexityService", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      throw new Error(`Failed to initialize PerplexityService: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  
+  /**
+   * Calculate token cost based on query complexity
+   * @param query The search query
+   * @returns The token cost (1-3)
+   */
+  private calculateTokenCost(query: string): number {
+    const length = query.length;
+    if (length < 50) return 1;
+    if (length < 200) return 2;
+    return 3;
   }
   
   /**
@@ -49,7 +102,7 @@ export class PerplexityService {
    */
   async search(query: string, options: { maxTokens?: number, timeout?: number } = {}): Promise<SearchResult> {
     // Handle test environment
-    if (config.env === 'test' && !this.apiKey) {
+    if (config.isTest && !this.apiKey) {
       logger.warn("Perplexity API key not set in test environment, returning mock response", { service: 'perplexity' });
       return { 
         content: "Mock search results for testing",
@@ -65,11 +118,22 @@ export class PerplexityService {
       logger.error("API key missing", { service: 'perplexity' });
       throw error;
     }
+    
+    // Initialize rate limiter if not already initialized
+    if (!this.rateLimiter) {
+      await this.initialize();
+    }
 
     try {
       // Acquire a token before making the API request
-      logger.debug("Acquiring rate limit token for Perplexity API", { query });
-      await this.rateLimiter.acquireToken();
+      const tokenCost = this.calculateTokenCost(query);
+      logger.debug("Acquiring rate limit token for Perplexity API", { query, tokenCost });
+      
+      if (!this.rateLimiter) {
+        throw new Error("Rate limiter not initialized");
+      }
+      
+      await this.rateLimiter.acquireToken(tokenCost);
       
       logger.info("Performing web search", { query });
 
@@ -104,6 +168,30 @@ export class PerplexityService {
           completionTokens: response.data.usage.completion_tokens,
           totalTokens: response.data.usage.total_tokens
         };
+      }
+      
+      // Extract sources if available
+      if (response.data.choices[0].message.tool_calls) {
+        try {
+          const toolCalls = response.data.choices[0].message.tool_calls;
+          for (const toolCall of toolCalls) {
+            if (toolCall.function.name === 'search') {
+              const searchResults = JSON.parse(toolCall.function.arguments);
+              if (searchResults.search_results) {
+                metadata.sources = searchResults.search_results.map((result: any) => ({
+                  title: result.title,
+                  url: result.url,
+                  snippet: result.snippet
+                }));
+              }
+            }
+          }
+        } catch (parseError) {
+          logger.warn("Failed to parse search sources from API response", {
+            error: parseError instanceof Error ? parseError.message : String(parseError),
+            query
+          });
+        }
       }
 
       return {
@@ -143,4 +231,4 @@ export class PerplexityService {
 }
 
 // Export a singleton instance
-export const perplexityService = new PerplexityService(config.perplexityApiKey); 
+export const perplexityService = new PerplexityService(); 

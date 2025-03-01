@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import { v4 as uuidv4 } from 'uuid';
+import { webSearchTool } from './stubs/web-search.js';
+import { commandInterceptorTool } from './stubs/command-interceptor.js';
+import { logger } from './stubs/logger.js';
 
 const app = express();
 const PORT = 3001;
@@ -52,7 +55,7 @@ app.get('/debug/sessions', (req, res) => {
 });
 
 // Main MCP endpoint for JSON-RPC
-app.post('/mcp', (req, res) => {
+app.post('/mcp', async (req, res) => {
   try {
     const message = req.body;
     console.log('Received HTTP request:', message);
@@ -102,7 +105,7 @@ app.post('/mcp', (req, res) => {
             version: '0.1.0',
             name: 'jsonrpc'
           },
-          tools: ['web-search', 'repo-analysis', 'health-check']
+          tools: ['web-search', 'command-interceptor', 'repo-analysis', 'health-check']
         }
       };
     } else if (message.method === 'health-check') {
@@ -112,13 +115,119 @@ app.post('/mcp', (req, res) => {
         sessions: sessions.size
       };
     } else if (message.method === 'web-search') {
-      response.result = {
-        query: message.params?.query || 'default query',
-        results: [
-          { title: 'Sample HTTP result 1', url: 'https://example.com/1' },
-          { title: 'Sample HTTP result 2', url: 'https://example.com/2' }
-        ]
-      };
+      try {
+        // Log request details for debugging
+        logger.info(`HTTP Transport: Processing web search request`, { 
+          query: message.params?.query,
+          provider: message.params?.provider,
+          sessionId
+        });
+        
+        // Start processing time measurement
+        const startTime = Date.now();
+        
+        // Add session context to the request
+        const requestWithSession = {
+          ...message.params,
+          sessionContext: {
+            sessionId,
+            transport: 'http',
+            userAgent: session.userAgent
+          }
+        };
+        
+        // Execute the web search tool with enhanced parameters
+        const result = await webSearchTool.execute(requestWithSession);
+        
+        // Calculate processing time
+        const processingTime = Date.now() - startTime;
+        
+        // Log success with processing time
+        logger.info(`HTTP Transport: Web search completed`, { 
+          sessionId, 
+          processingTime: `${processingTime}ms`,
+          provider: result.metadata?.provider || 'unknown',
+          cached: result.metadata?.cached || false
+        });
+        
+        // Return the full result
+        response.result = result;
+      } catch (error) {
+        // Enhanced error handling with specific error codes
+        logger.error(`HTTP Transport: Web search failed`, { 
+          error: error.message, 
+          stack: error.stack,
+          sessionId
+        });
+        
+        return res.status(400).json({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: {
+            code: error.code || -32000,
+            message: `Web search failed: ${error.message}`,
+            data: {
+              sessionId,
+              errorType: error.name,
+              provider: error.provider
+            }
+          }
+        });
+      }
+    } else if (message.method === 'command-interceptor') {
+      try {
+        logger.info(`HTTP Transport: Processing command interceptor request`, {
+          message: message.params?.message,
+          sessionId
+        });
+        
+        // Start processing time measurement
+        const startTime = Date.now();
+        
+        // Add session context to the request
+        const requestWithSession = {
+          ...message.params,
+          sessionContext: {
+            sessionId,
+            transport: 'http',
+            userAgent: session.userAgent
+          }
+        };
+        
+        // Execute command interceptor with enhanced context
+        const result = await commandInterceptorTool.execute(requestWithSession);
+        
+        // Calculate processing time
+        const processingTime = Date.now() - startTime;
+        
+        // Log success with processing time
+        logger.info(`HTTP Transport: Command interceptor completed`, { 
+          sessionId, 
+          processingTime: `${processingTime}ms`,
+          commandFound: result !== null
+        });
+        
+        response.result = result;
+      } catch (error) {
+        logger.error(`HTTP Transport: Command interception failed`, { 
+          error: error.message, 
+          stack: error.stack,
+          sessionId
+        });
+        
+        return res.status(400).json({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: {
+            code: error.code || -32000,
+            message: `Command interception failed: ${error.message}`,
+            data: {
+              sessionId,
+              errorType: error.name
+            }
+          }
+        });
+      }
     } else if (message.method === 'repo-analysis') {
       response.result = {
         repository: message.params?.repository || 'unknown',
@@ -159,7 +268,7 @@ app.post('/mcp', (req, res) => {
       error: {
         code: -32000,
         message: 'Internal server error',
-        data: { error: error.message }
+        data: { error: error.message, stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined }
       }
     });
   }
