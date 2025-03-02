@@ -1,7 +1,5 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { HttpServerTransport } from './transports/http.js';
-import { SSEServerTransport } from './transports/sse.js';
 import { webSearchTool } from './capabilities/tools/web-search.js';
 import { repoAnalysisTool } from './capabilities/tools/repo-analysis.js';
 import { browserAutomationTool } from './capabilities/tools/browser-automation.js';
@@ -17,6 +15,7 @@ import { searchHistoryRoutes } from './routes/search-history.routes.js';
 import { searchHistoryResource } from './resources/search-history.resource.js';
 import { githubPrResource } from './resources/github-pr.resource.js';
 import { createWebInterface } from './web-interface.js';
+import { TransportFactory, TransportType } from './transports/factory.js';
 
 // Define health check schema
 const HealthCheckSchema = z.object({
@@ -96,21 +95,11 @@ async function main() {
         });
 
         // Determine transport type
-        let transport;
-        let transportType = 'stdio';
-        let app;
+        let transports = [];
+        const host = validatedConfig.host || 'localhost';
 
-        // Set up HTTP/SSE transport if enabled
-        // Process config values first for debugging
-        logger.debug('Transport config:', {
-            restApi: validatedConfig.restApi?.enabled,
-            httpTransport: validatedConfig.httpTransport?.enabled,
-            sseTransport: validatedConfig.sseTransport?.enabled,
-            webInterface: validatedConfig.webInterface?.enabled
-        });
-        
-        // ALWAYS create Express app (regardless of config)
-        app = express();
+        // ALWAYS create Express app for REST API (regardless of config)
+        const app = express();
         app.use(cors());
         app.use(express.json());
 
@@ -134,46 +123,35 @@ async function main() {
 
         // Start the REST API server
         const restApiPort = validatedConfig.restApi?.port || 3000;
-        const host = validatedConfig.host || 'localhost';
         httpServer.listen(restApiPort, host, () => {
             logger.info(`REST API server listening on ${host}:${restApiPort}`);
         });
 
-        // ALWAYS set up HTTP transport
+        // Create HTTP transport
         const httpTransportPort = validatedConfig.httpTransport?.port || 3001;
         const httpTransportPath = validatedConfig.httpTransport?.path || '/mcp';
         
-        // Create a separate Express app for HTTP transport
-        const httpApp = express();
-        httpApp.use(cors());
-        httpApp.use(express.json());
-        
-        const httpTransportServer = http.createServer(httpApp);
-        httpTransportServer.listen(httpTransportPort, host, () => {
-            logger.info(`HTTP transport server listening on ${host}:${httpTransportPort}`);
+        const httpTransport = TransportFactory.createTransport({
+            type: TransportType.HTTP,
+            port: httpTransportPort,
+            path: httpTransportPath,
+            host
         });
         
-        transport = new HttpServerTransport(httpApp, { path: httpTransportPath });
-        transportType = 'HTTP';
-        logger.info(`HTTP transport enabled on ${httpTransportPath}`);
+        transports.push(httpTransport.transport);
 
-        // ALWAYS set up SSE transport
+        // Create SSE transport
         const sseTransportPort = validatedConfig.sseTransport?.port || 3002;
         const sseTransportPath = validatedConfig.sseTransport?.path || '/mcp-sse';
         
-        // Create a separate Express app for SSE transport
-        const sseApp = express();
-        sseApp.use(cors());
-        sseApp.use(express.json());
-        
-        const sseTransportServer = http.createServer(sseApp);
-        sseTransportServer.listen(sseTransportPort, host, () => {
-            logger.info(`SSE transport server listening on ${host}:${sseTransportPort}`);
+        const sseTransport = TransportFactory.createTransport({
+            type: TransportType.SSE,
+            port: sseTransportPort,
+            path: sseTransportPath,
+            host
         });
         
-        // Create SSE Transport (but still use HTTP transport for main communications)
-        const sseTransport = new SSEServerTransport(sseApp, { path: sseTransportPath });
-        logger.info(`SSE transport enabled on ${sseTransportPath}`);
+        transports.push(sseTransport.transport);
 
         // Set up error handlers
         process.on('uncaughtException', (error) => {
@@ -198,15 +176,13 @@ async function main() {
         });
 
         // Initialize and connect to transports
-        logger.debug("Connecting to transport...");
-        if (transport) {
-            // Connect to HTTP transport
-            await server.connect(transport);
-            logger.info(`MCP server connected to HTTP transport`);
-            
-            // Also connect to SSE transport
-            await server.connect(sseTransport);
-            logger.info(`MCP server connected to SSE transport`);
+        logger.debug("Connecting to transports...");
+        if (transports.length > 0) {
+            // Connect to all transports
+            for (const transport of transports) {
+                await server.connect(transport);
+                logger.info(`MCP server connected to ${transport.constructor.name}`);
+            }
             
             logger.info(`Enabled features: ${Object.keys(config.features || {}).filter(key => (config.features || {})[key as keyof typeof config.features]).join(', ') || 'web-search, repo-analysis'}`);
 

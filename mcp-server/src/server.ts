@@ -2,9 +2,18 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { webSearchTool } from './capabilities/tools/web-search.js';
 import { commandInterceptorTool } from './capabilities/tools/command-interceptor.js';
+import { toolExecutorTool } from './capabilities/tools/tool-executor.js';
 import { config, ServerConfigSchema } from './config/index.js';
 import { logger } from './utils/logger.js';
 import { z } from 'zod';
+import { toolRegistry } from './tools/registry.js';
+import { startApiServer } from './api/server.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get the directory of the current file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function main() {
     try {
@@ -25,6 +34,17 @@ async function main() {
             logger.info("OpenAI API key is available");
         }
         
+        // Load tools dynamically from the tools directory
+        // This will be a relative path from the current file
+        const toolsDir = path.resolve(__dirname, '../../tools');
+        await toolRegistry.loadToolsFromDirectory(toolsDir);
+        
+        // Register built-in tools
+        toolRegistry.register(webSearchTool);
+        toolRegistry.register(commandInterceptorTool);
+        toolRegistry.register(toolExecutorTool);
+        
+        // Create MCP server
         const server = new Server({
             name: "cursor-tools-mcp-server",
             version: "0.1.0",
@@ -34,32 +54,36 @@ async function main() {
                 resources: {}, // Resources will be defined here
                 tools: {
                     'web-search': webSearchTool,
-                    'command-interceptor': commandInterceptorTool
+                    'command-interceptor': commandInterceptorTool,
+                    'tool-executor': toolExecutorTool
                 }
             }
         });
 
+        // Start the MCP server with stdio transport
         const transport = new StdioServerTransport();
-        
-        logger.info("Connecting to transport...");
+        logger.info("Connecting to MCP transport...");
         await server.connect(transport);
         logger.info("✅ MCP Server started using stdio transport.");
-        logger.info("Available tools:");
-        logger.info("  - web-search: Enhanced web search with multiple providers (Perplexity, Gemini, OpenAI)");
+        
+        // List available tools
+        logger.info("Available MCP tools:");
+        logger.info("  - web-search: Enhanced web search with multiple providers");
         logger.info("  - command-interceptor: Intercept and process special commands from chat");
+        logger.info("  - tool-executor: Execute any registered tool by name");
         
-        // Log configuration information
-        logger.info(`Server configuration loaded from: ${process.env.NODE_ENV || 'development'} environment`);
-        logger.info(`Storage path: ${config.storage?.path || './storage'}`);
-        logger.info(`Research directory: ${config.storage?.researchDir || './local-research'}`);
-        
-        // Log default provider if configured
-        if (config.apis?.defaultProvider) {
-            logger.info(`Default search provider: ${config.apis.defaultProvider}`);
+        // Start the HTTP API server if enabled in config
+        if (config.api?.enabled !== false) {
+            try {
+                await startApiServer();
+                logger.info("HTTP API server started successfully");
+            } catch (apiError) {
+                logger.error("Failed to start HTTP API server:", { error: apiError });
+            }
         } else {
-            logger.info("Default search provider: perplexity");
+            logger.info("HTTP API server is disabled in the configuration");
         }
-
+        
     } catch (error) {
         logger.error("❌ Server failed to start:", { error });
         process.exit(1);

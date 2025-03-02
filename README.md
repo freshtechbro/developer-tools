@@ -8,6 +8,7 @@ A comprehensive suite of tools for developers, integrated into a unified platfor
 - **Repository Analysis**: Analyze code repositories using Google Gemini
 - **Documentation Generation**: Generate documentation from code repositories
 - **Browser Automation**: Automate browser actions for testing and scraping
+- **Command Line Interface**: Unified CLI for all tools and server management
 
 ## Architecture
 
@@ -17,6 +18,7 @@ This project is organized as a monorepo with the following components:
   - **server/**: Server-side code including services, transports, and routes
   - **shared/**: Shared utilities, types, and configurations
   - **client/**: Client-side code for web interfaces
+  - **cli/**: Command-line interface for all tools and server management
 
 - **tools/**: Individual command-line tools
   - **web-search/**: Web search tool using Perplexity AI
@@ -45,9 +47,10 @@ cd developer-tools
 # Install dependencies
 npm install
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your API keys and configuration
+# Run the interactive installer
+npm run install:interactive
+# Or use the CLI
+npx dev-tools install
 ```
 
 ## Configuration
@@ -67,11 +70,46 @@ Required environment variables:
 
 ### Command Line Interface
 
+The new unified CLI provides access to all tools and server management:
+
+```bash
+# Install the CLI globally
+npm install -g developer-tools
+
+# Or use it directly
+npx dev-tools <command>
+```
+
+Available commands:
+
+```bash
+# Web search
+dev-tools web "What is the capital of France?"
+dev-tools web "Latest JavaScript framework trends" --save
+dev-tools web "Node.js file system API" --format json
+
+# Run any registered tool
+dev-tools run web-search --data '{"query": "JavaScript async/await patterns"}'
+
+# List available tools
+dev-tools list
+
+# Start the MCP server
+dev-tools start
+dev-tools start --port 3002 --no-api
+
+# Install and configure
+dev-tools install
+dev-tools install -y --api-key "your-api-key" --server-port 3001
+```
+
+### Legacy Command Line Tools
+
+The original command-line tools are still available:
+
 ```bash
 # Web search
 npx dt web "What is the capital of France?"
-npx dt web "Latest JavaScript framework trends" --save
-npx dt web "Node.js file system API" --format json
 
 # Repository analysis
 npx dt repo "Explain the authentication flow"
@@ -137,6 +175,10 @@ To test transport integrations:
 ```bash
 npm run test-transport
 ```
+
+## Cursor IDE Integration
+
+The Developer Tools CLI integrates with Cursor IDE through the `.cursorrules` file, allowing you to execute commands directly from the Cursor AI chat interface. See the `.cursorrules` file for available commands and usage examples.
 
 ## License
 

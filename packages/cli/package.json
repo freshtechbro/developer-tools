@@ -1,0 +1,29 @@
+{
+  "name": "@developer-tools/cli",
+  "version": "1.0.0",
+  "description": "Command-line interface for Developer Tools",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "dev-tools": "bin.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "inquirer": "^9.2.15",
+    "ora": "^8.0.1"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.11.19",
+    "typescript": "^5.3.3"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "types": "./dist/index.d.ts"
+}

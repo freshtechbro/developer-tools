@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.logger = void 0;
-const index_js_1 = require("../config/index.js");
+import { config } from '../config/index.js';
 // Define log levels and their numeric values
 const LogLevels = {
     debug: 0,
@@ -10,6 +7,7 @@ const LogLevels = {
     error: 3
 };
 class Logger {
+    currentLogLevel;
     constructor(logLevel = 'info') {
         this.currentLogLevel = logLevel;
     }
@@ -54,4 +52,4 @@ class Logger {
     }
 }
 // Create and export singleton instance
-exports.logger = new Logger(index_js_1.config.logLevel);
+export const logger = new Logger(config.logLevel);

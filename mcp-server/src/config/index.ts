@@ -11,7 +11,23 @@ const EnvSchema = z.object({
     PERPLEXITY_API_KEY: z.string().optional(),
     GEMINI_API_KEY: z.string(),
     PORT: z.string().optional(),
-    HOST: z.string().optional()
+    HOST: z.string().optional(),
+    API_PORT: z.string().optional(),
+    API_ENABLED: z.string().optional(),
+    TOOLS_DIR: z.string().optional()
+});
+
+// Define API server configuration schema
+const ApiConfigSchema = z.object({
+    enabled: z.boolean().default(true),
+    port: z.number().default(3001),
+    host: z.string().default('localhost')
+});
+
+// Define storage configuration schema
+const StorageConfigSchema = z.object({
+    path: z.string().default('./storage'),
+    researchDir: z.string().default('./local-research')
 });
 
 // Define server configuration schema
@@ -22,7 +38,10 @@ export const ServerConfigSchema = z.object({
     logLevel: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     env: z.enum(['development', 'production', 'test']).default('development'),
     port: z.number().optional(),
-    host: z.string().optional()
+    host: z.string().optional(),
+    api: ApiConfigSchema.optional(),
+    storage: StorageConfigSchema.optional(),
+    toolsDir: z.string().optional()
 });
 
 // Parse and validate environment variables
@@ -38,7 +57,23 @@ export const config = {
     port: env.PORT ? parseInt(env.PORT, 10) : undefined,
     host: env.HOST,
     perplexityApiKey: env.PERPLEXITY_API_KEY,
-    geminiApiKey: env.GEMINI_API_KEY
+    geminiApiKey: env.GEMINI_API_KEY,
+    
+    // API server configuration
+    api: {
+        enabled: env.API_ENABLED ? env.API_ENABLED.toLowerCase() === 'true' : true,
+        port: env.API_PORT ? parseInt(env.API_PORT, 10) : 3001,
+        host: env.HOST || 'localhost'
+    },
+    
+    // Storage configuration
+    storage: {
+        path: './storage',
+        researchDir: './local-research'
+    },
+    
+    // Tools directory
+    toolsDir: env.TOOLS_DIR || './tools'
 };
 
 // Export environment variables
