@@ -1,9 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import { json, urlencoded } from 'body-parser';
+import { createServer } from 'http';
 import { toolRouter } from './tool-routes.js';
+import { chatRouter } from './chat-routes.js';
+import { WsServer } from './websocket-server.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
+
+// Export the WebSocket server instance
+export let wsServer: WsServer;
 
 /**
  * Configure and start the HTTP API server
@@ -25,6 +31,7 @@ export async function startApiServer() {
   
   // Register routes
   app.use('/api/tools', toolRouter);
+  app.use('/api/chat', chatRouter);
   
   // Simple health check endpoint
   app.get('/health', (req, res) => {
@@ -40,15 +47,23 @@ export async function startApiServer() {
     });
   });
   
-  // Start the server
+  // Create HTTP server
   const port = config.api?.port || 3001;
-  const server = app.listen(port, () => {
+  const httpServer = createServer(app);
+  
+  // Create WebSocket server
+  wsServer = new WsServer(httpServer);
+  
+  // Start the server
+  const server = httpServer.listen(port, () => {
     logger.info(`HTTP API server listening on port ${port}`);
+    logger.info(`WebSocket server available at ws://localhost:${port}`);
   });
   
   // Handle graceful shutdown
   const shutdown = () => {
     logger.info('Shutting down HTTP API server...');
+    wsServer.close();
     server.close(() => {
       logger.info('HTTP API server has closed');
     });

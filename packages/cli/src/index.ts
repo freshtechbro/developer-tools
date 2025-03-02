@@ -3,9 +3,37 @@ import chalk from 'chalk';
 import { execTool } from './tool-executor.js';
 import { installTools } from './installer.js';
 import { startMcpServer } from './server-manager.js';
+import { isIdeTerminal, getEnvironmentInfo, Environment } from './environment-detector.js';
 
 // Define the program
 const program = new Command();
+
+// Get environment information
+const envInfo = getEnvironmentInfo();
+const isIde = envInfo.isIde;
+
+// Configure output based on environment
+const log = (message: string, type: 'info' | 'success' | 'error' | 'warn' = 'info') => {
+  if (isIde) {
+    // Simpler output for IDE terminals
+    console.log(message);
+  } else {
+    // Colorful output for regular terminals
+    switch (type) {
+      case 'success':
+        console.log(chalk.green(message));
+        break;
+      case 'error':
+        console.log(chalk.red(message));
+        break;
+      case 'warn':
+        console.log(chalk.yellow(message));
+        break;
+      default:
+        console.log(chalk.blue(message));
+    }
+  }
+};
 
 program
   .name('developer-tools')
@@ -27,11 +55,11 @@ program
     server: string;
   }) => {
     try {
-      console.log(chalk.blue(`Executing tool: ${tool}`));
+      log(`Executing tool: ${tool}`, 'info');
       const result = await execTool(tool, options);
       
       if (options.output) {
-        console.log(chalk.green(`Results saved to: ${options.output}`));
+        log(`Results saved to: ${options.output}`, 'success');
       } else {
         // Pretty print the result
         if (typeof result === 'object') {
@@ -41,7 +69,7 @@ program
         }
       }
     } catch (error) {
-      console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      log(`Error: ${error instanceof Error ? error.message : String(error)}`, 'error');
       process.exit(1);
     }
   });
@@ -63,7 +91,7 @@ program
     try {
       await installTools(options);
     } catch (error) {
-      console.error(chalk.red(`Installation failed: ${error instanceof Error ? error.message : String(error)}`));
+      log(`Installation failed: ${error instanceof Error ? error.message : String(error)}`, 'error');
       process.exit(1);
     }
   });
@@ -83,7 +111,7 @@ program
     try {
       await startMcpServer(options);
     } catch (error) {
-      console.error(chalk.red(`Server failed to start: ${error instanceof Error ? error.message : String(error)}`));
+      log(`Server failed to start: ${error instanceof Error ? error.message : String(error)}`, 'error');
       process.exit(1);
     }
   });
@@ -103,7 +131,7 @@ program
     detailed?: boolean;
   }) => {
     try {
-      console.log(chalk.blue(`🔍 Searching for: "${query}"...`));
+      log(`🔍 Searching for: "${query}"...`, 'info');
       
       const toolOptions = {
         data: JSON.stringify({
@@ -122,13 +150,13 @@ program
         console.log((result as { searchResults: string }).searchResults);
         
         if ('savedToFile' in result && (result as { savedToFile?: string }).savedToFile) {
-          console.log(chalk.green(`\nResults saved to: ${(result as { savedToFile: string }).savedToFile}`));
+          log(`\nResults saved to: ${(result as { savedToFile: string }).savedToFile}`, 'success');
         }
       } else {
         console.log(result);
       }
     } catch (error) {
-      console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      log(`Error: ${error instanceof Error ? error.message : String(error)}`, 'error');
       process.exit(1);
     }
   });
@@ -140,22 +168,26 @@ program
   .option('-s, --server <url>', 'MCP server URL', 'http://localhost:3001/api')
   .action(async (options: { server: string }) => {
     try {
-      console.log(chalk.blue('Fetching available tools...'));
+      log('Fetching available tools...', 'info');
       
       // Implement tool listing logic here
       const result = await fetch(`${options.server}/tools`);
       const data = await result.json();
       
-      console.log(chalk.green('Available tools:'));
+      log('Available tools:', 'success');
       if (data.tools && Array.isArray(data.tools)) {
         data.tools.forEach((tool: { name: string; version: string; description: string }) => {
-          console.log(`- ${chalk.bold(tool.name)} (v${tool.version}): ${tool.description}`);
+          if (isIde) {
+            console.log(`- ${tool.name} (v${tool.version}): ${tool.description}`);
+          } else {
+            console.log(`- ${chalk.bold(tool.name)} (v${tool.version}): ${tool.description}`);
+          }
         });
       } else {
-        console.log(chalk.yellow('No tools available or server not responding correctly'));
+        log('No tools available or server not responding correctly', 'warn');
       }
     } catch (error) {
-      console.error(chalk.red(`Failed to list tools: ${error instanceof Error ? error.message : String(error)}`));
+      log(`Failed to list tools: ${error instanceof Error ? error.message : String(error)}`, 'error');
       process.exit(1);
     }
   });

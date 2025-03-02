@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
+import { isIdeTerminal, getEnvironmentInfo } from './environment-detector.js';
 
 /**
  * Options for executing a tool
@@ -19,6 +20,10 @@ interface ToolExecutionOptions {
  * @returns The tool execution result
  */
 export async function execTool(toolName: string, options: ToolExecutionOptions): Promise<any> {
+  // Get environment information
+  const envInfo = getEnvironmentInfo();
+  const isIde = envInfo.isIde;
+  
   // Determine the request data
   let requestData: any;
   
@@ -43,13 +48,23 @@ export async function execTool(toolName: string, options: ToolExecutionOptions):
     requestData = {};
   }
   
+  // Add environment information to the request
+  requestData._environment = {
+    type: envInfo.environment,
+    isIde,
+    details: envInfo.details
+  };
+  
   // Determine the server URL
   const serverUrl = options.server || 'http://localhost:3001/api';
   const toolUrl = `${serverUrl}/tools/${toolName}/execute`;
   
   try {
     // Make the request to the server
-    console.log(chalk.blue(`Sending request to: ${toolUrl}`));
+    if (!isIde) {
+      console.log(chalk.blue(`Sending request to: ${toolUrl}`));
+    }
+    
     const response = await fetch(toolUrl, {
       method: 'POST',
       headers: {
