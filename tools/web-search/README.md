@@ -1,130 +1,111 @@
 # Web Search Tool
 
-A command-line tool for performing web searches using Perplexity AI. This tool is part of the Developer Tools monorepo and is designed to be used standalone or as part of the unified platform.
+A powerful web search tool that leverages AI providers to deliver comprehensive search results.
 
 ## Features
 
-- Search the web using natural language queries
-- Format results as text, markdown, JSON, or HTML
-- Save search results to a file
-- Customize output file names and formats
-- Rate limiting to prevent API overuse
-- Integration with the services layer for Perplexity API interactions
-- Multiple transport mechanisms (direct CLI, HTTP, SSE)
-
-## Installation
-
-```bash
-# Install globally from the monorepo
-npm install -g ./tools/web-search
-
-# Or link it for development
-cd tools/web-search
-npm link
-```
+- Multiple AI provider support with automatic fallback
+- Configurable output formats
+- Caching for improved performance
+- Source attribution
+- Metadata tracking
+- File saving capabilities
+- Pluggable formatter system
 
 ## Usage
 
-### Basic Search
+```bash
+dev-tools run web-search --data '{"query": "your search query", "outputFormat": "markdown"}'
+```
+
+## Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| query | string | (required) | The search query |
+| outputFormat | string | "markdown" | Output format (text, markdown, json, html, csv, xml, etc.) |
+| saveToFile | boolean | false | Whether to save results to a file |
+| maxTokens | number | 150 | Maximum tokens for the response |
+| includeSources | boolean | true | Include source information |
+| includeMetadata | boolean | false | Include metadata in the output |
+| customFileName | string | | Custom filename for saved results |
+| provider | string | | Specific provider to use |
+| model | string | | Specific model to use |
+| temperature | number | 0.7 | Temperature for generation |
+| detailed | boolean | false | Get more detailed results |
+| noCache | boolean | false | Bypass cache |
+| timeout | number | 30000 | Request timeout in ms |
+| customCss | string | | Custom CSS for HTML output |
+| cssClasses | object | | CSS class overrides for HTML output |
+
+## Formatter System
+
+The web search tool uses a pluggable formatter system that allows for custom output formats. The tool comes with several built-in formatters:
+
+- Text: Plain text output
+- Markdown: Formatted markdown
+- JSON: Structured JSON data
+- HTML: Rich HTML output
+- CSV: Comma-separated values (plugin)
+- XML: XML formatted data (plugin)
+
+### Creating Custom Formatters
+
+You can create custom formatters by implementing the `ResultFormatter` interface and placing your formatter in the `plugins` directory.
+
+#### Example Custom Formatter
+
+```typescript
+import { ResultFormatter, FormatterOptions } from '../services/formatter-service.js';
+import { SearchResult } from '../providers/provider-interface.js';
+
+export class MyCustomFormatter implements ResultFormatter {
+  // Unique identifier for the format
+  format = 'custom';
+  
+  // Display name
+  name = 'My Custom Format';
+  
+  // Format method implementation
+  formatResult(result: SearchResult, options?: FormatterOptions): string {
+    const { content, metadata } = result;
+    // Your custom formatting logic here
+    return `CUSTOM FORMAT: ${content}`;
+  }
+}
+
+// Export the formatter
+export default MyCustomFormatter;
+```
+
+### Using Custom Formatters
+
+Once your custom formatter is placed in the `plugins` directory, it will be automatically loaded when the web search tool starts. You can then use your custom format by specifying it in the `outputFormat` option:
 
 ```bash
-# Basic search query
-dt web "What is the capital of France?"
-
-# Use alternative commands
-web-search "What is the capital of France?"
-npx dt web "What is the capital of France?"
+dev-tools run web-search --data '{"query": "your search query", "outputFormat": "custom"}'
 ```
 
-### Saving Results
+## Extending the Formatter Service
 
-```bash
-# Save results to default file in research directory
-dt web "Latest JavaScript frameworks" --save
+The formatter service can be extended programmatically:
 
-# Save with custom filename
-dt web "Node.js file system API" --save --output nodejs-fs-api.md
+```typescript
+import { formatterService } from './services/formatter-service.js';
+import { MyCustomFormatter } from './my-custom-formatter.js';
+
+// Register a custom formatter
+formatterService.registerFormatter(new MyCustomFormatter());
+
+// Get all registered formatters
+const formatters = formatterService.getFormatters();
+console.log(formatters.map(f => f.name)); // ['Plain Text', 'Markdown', 'JSON', 'HTML', 'My Custom Format']
 ```
 
-### Output Formats
+## Cache System
 
-```bash
-# Specify output format
-dt web "Quantum computing basics" --format markdown
-dt web "JavaScript async/await" --format json
-dt web "HTML5 canvas tutorial" --format html
-```
+The web search tool includes a sophisticated caching system with TTL-based invalidation, cache statistics, and methods to refresh specific items. The cache can be configured through environment variables or programmatically.
 
-### Advanced Options
+## Contributing
 
-```bash
-# Exclude sources from results
-dt web "Climate change research" --no-sources
-
-# Quiet mode (less console output)
-dt web "Python best practices" --quiet
-
-# Customize token limit
-dt web "History of artificial intelligence" --max-tokens 1000
-```
-
-## Options
-
-- `--save`, `-s`: Save results to a file (default: false)
-- `--format`, `-f`: Output format: text, markdown, json, html (default: "text")
-- `--max-tokens`, `-m`: Maximum tokens for the response (default: 500)
-- `--output`, `-o`: Custom output file name (default: based on query)
-- `--no-sources`: Exclude sources from the results (default: includes sources)
-- `--quiet`, `-q`: Reduce console output (default: false)
-- `--help`, `-h`: Show help message
-
-## Environment Variables
-
-The web search tool requires several environment variables to be set:
-
-- `PERPLEXITY_API_KEY`: Your Perplexity API key (required)
-- `RESEARCH_DIR`: Directory to save search results (default: "./local-research")
-- `RATE_LIMIT_ENABLED`: Enable/disable rate limiting (default: "true")
-- `RATE_LIMIT_MAX`: Maximum searches per minute (default: "5")
-
-## Integration with Monorepo
-
-The web search tool is integrated with the Developer Tools monorepo:
-
-- Uses the `PerplexityService` from the services layer
-- Supports the MCP protocol for communication
-- Can be accessed via the unified web interface
-- Shares configuration with other tools
-
-## Programmatic Usage
-
-```javascript
-import { webSearch } from '@developer-tools/web-search';
-
-const results = await webSearch("Quantum computing explained", {
-  format: "markdown",
-  save: true,
-  output: "quantum-computing.md",
-  maxTokens: 750,
-  includeSources: true
-});
-
-console.log(results.searchResults);
-```
-
-## Development
-
-```bash
-# Run tests
-npm test
-
-# Build the tool
-npm run build
-
-# Lint code
-npm run lint
-```
-
-## License
-
-This tool is licensed under the MIT License. 
+Contributions are welcome! Please feel free to submit a Pull Request. 

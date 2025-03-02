@@ -14,12 +14,28 @@ import {
 import { getProvider, getFallbackProviders } from './providers/provider-factory.js';
 import { searchCacheService } from './services/cache-service.js';
 import { formatterService } from './services/formatter-service.js';
+import { initializePlugins } from './plugins/plugin-loader.js';
+
+// Initialize plugins
+(async () => {
+  try {
+    await initializePlugins();
+    logger.info('Web search plugins initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize web search plugins', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+})();
+
+// Get available formatters for schema validation
+const availableFormatters = formatterService.getFormatters().map(formatter => formatter.format);
 
 // Define request schema with enhanced options
 const WebSearchRequestSchema = z.object({
   query: z.string().min(1, "Search query cannot be empty"),
   saveToFile: z.boolean().optional().default(false),
-  outputFormat: z.enum(['text', 'markdown', 'json', 'html']).optional().default('markdown'),
+  outputFormat: z.string().optional().default('markdown'),
   maxTokens: z.number().optional().default(150),
   includeSources: z.boolean().optional().default(true),
   includeMetadata: z.boolean().optional().default(false),
@@ -30,7 +46,8 @@ const WebSearchRequestSchema = z.object({
   detailed: z.boolean().optional().default(false),
   noCache: z.boolean().optional().default(false),
   timeout: z.number().optional().default(30000),
-  customCss: z.string().optional()
+  customCss: z.string().optional(),
+  cssClasses: z.record(z.string()).optional()
 });
 
 const WebSearchResponseSchema = z.object({
@@ -51,7 +68,8 @@ const WebSearchResponseSchema = z.object({
     provider: z.string().optional(),
     query: z.string().optional(),
     timestamp: z.string().optional(),
-    cached: z.boolean().optional()
+    cached: z.boolean().optional(),
+    formatter: z.string().optional()
   }).optional()
 });
 
@@ -64,7 +82,7 @@ type WebSearchResponse = z.infer<typeof WebSearchResponseSchema>;
 function generateFileName(query: string, customFileName?: string, format: string = 'markdown'): string {
   if (customFileName) {
     // Ensure the custom filename has the correct extension
-    const extension = format === 'json' ? '.json' : format === 'markdown' ? '.md' : format === 'html' ? '.html' : '.txt';
+    const extension = getFileExtensionForFormat(format);
     if (!customFileName.endsWith(extension)) {
       return customFileName + extension;
     }
@@ -79,9 +97,21 @@ function generateFileName(query: string, customFileName?: string, format: string
     .substring(0, 40);
   
   const timestamp = Date.now();
-  const extension = format === 'json' ? '.json' : format === 'markdown' ? '.md' : format === 'html' ? '.html' : '.txt';
+  const extension = getFileExtensionForFormat(format);
   
   return `web-search-${sanitizedQuery}-${timestamp}${extension}`;
+}
+
+/**
+ * Get file extension for a given format
+ */
+function getFileExtensionForFormat(format: string): string {
+  switch (format) {
+    case 'json': return '.json';
+    case 'markdown': return '.md';
+    case 'html': return '.html';
+    default: return '.txt';
+  }
 }
 
 /**
@@ -89,7 +119,7 @@ function generateFileName(query: string, customFileName?: string, format: string
  */
 export const webSearchTool: Tool = {
   name: 'web-search',
-  version: '0.4.0',
+  version: '0.5.0',
   description: 'Performs a web search using AI providers and returns formatted results.',
   
   execute: async (request: unknown): Promise<unknown> => {
@@ -147,7 +177,8 @@ export const webSearchTool: Tool = {
         format: validatedRequest.outputFormat,
         includeSources: validatedRequest.includeSources,
         includeMetadata: validatedRequest.includeMetadata,
-        customCss: validatedRequest.customCss
+        customCss: validatedRequest.customCss,
+        cssClasses: validatedRequest.cssClasses
       });
       
       // If saveToFile is true, save results to file
@@ -184,7 +215,8 @@ export const webSearchTool: Tool = {
         savedToFile: savedFilePath,
         metadata: {
           ...result.metadata,
-          cached: fromCache
+          cached: fromCache,
+          formatter: validatedRequest.outputFormat
         }
       });
       

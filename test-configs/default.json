@@ -1,0 +1,53 @@
+{
+  "environment": {
+    "NODE_ENV": "test",
+    "PORT": 3000,
+    "MCP_PORT": 3001,
+    "STORAGE_DIR": "./storage"
+  },
+  "apiKeys": {
+    "openrouter": "${OPENROUTER_API_KEY}",
+    "modelbox": "${MODELBOX_API_KEY}"
+  },
+  "servers": {
+    "mcp": {
+      "path": "./mcp-server",
+      "command": "npm start",
+      "healthCheck": "http://localhost:3001/health",
+      "timeout": 10000
+    },
+    "web": {
+      "path": "./unified-test-interface",
+      "command": "npm run dev",
+      "healthCheck": "http://localhost:3000",
+      "timeout": 10000
+    }
+  },
+  "dependencies": {
+    "required": [
+      "node",
+      "npm"
+    ],
+    "packages": []
+  },
+  "test": {
+    "reportDir": "./test-reports",
+    "scenarios": [
+      {
+        "name": "Basic Search",
+        "query": "What is TypeScript?",
+        "format": "markdown"
+      },
+      {
+        "name": "CSV Export",
+        "query": "Node.js event loop",
+        "format": "csv"
+      },
+      {
+        "name": "XML Export",
+        "query": "Web development trends",
+        "format": "xml"
+      }
+    ]
+  }
+} 

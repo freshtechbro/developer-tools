@@ -1,0 +1,86 @@
+{
+  "environment": {
+    "NODE_ENV": "test",
+    "PORT": 3000,
+    "MCP_PORT": 3001,
+    "STORAGE_DIR": "./storage"
+  },
+  "apiKeys": {
+    "openrouter": "${OPENROUTER_API_KEY}",
+    "modelbox": "${MODELBOX_API_KEY}"
+  },
+  "servers": {
+    "mcp": {
+      "path": "./mcp-server",
+      "command": "npm start",
+      "healthCheck": "http://localhost:3001/health",
+      "timeout": 10000
+    },
+    "web": {
+      "path": "./unified-test-interface",
+      "command": "npm run dev",
+      "healthCheck": "http://localhost:3000",
+      "timeout": 10000
+    }
+  },
+  "dependencies": {
+    "required": [
+      "node",
+      "npm"
+    ],
+    "packages": []
+  },
+  "test": {
+    "reportDir": "./test-reports/web-search",
+    "focus": "web-search",
+    "scenarios": [
+      {
+        "name": "Basic Markdown Search",
+        "query": "What is TypeScript?",
+        "format": "markdown"
+      },
+      {
+        "name": "JSON Output",
+        "query": "React hooks explained",
+        "format": "json"
+      },
+      {
+        "name": "HTML Output",
+        "query": "CSS Grid vs Flexbox",
+        "format": "html"
+      },
+      {
+        "name": "CSV Export",
+        "query": "Node.js event loop",
+        "format": "csv"
+      },
+      {
+        "name": "XML Export",
+        "query": "Web development trends 2023",
+        "format": "xml"
+      },
+      {
+        "name": "Detailed Search with Sources",
+        "query": "Machine learning algorithms",
+        "format": "markdown",
+        "options": {
+          "detailed": true,
+          "includeSources": true,
+          "includeMetadata": true
+        }
+      },
+      {
+        "name": "Custom CSS for HTML",
+        "query": "Responsive design best practices",
+        "format": "html",
+        "options": {
+          "customCss": ".search-result-container { font-family: Arial; background-color: #f5f5f5; padding: 20px; }",
+          "cssClasses": {
+            "container": "custom-container",
+            "content": "custom-content"
+          }
+        }
+      }
+    ]
+  }
+} 

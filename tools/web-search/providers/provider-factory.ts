@@ -2,6 +2,8 @@ import { SearchProvider } from './provider-interface.js';
 import { PerplexityProvider } from './perplexity-provider.js';
 import { GeminiProvider } from './gemini-provider.js';
 import { OpenAIProvider } from './openai-provider.js';
+import { OpenRouterProvider } from './openrouter-provider.js';
+import { ModelBoxProvider } from './modelbox-provider.js';
 import { logger } from '@developer-tools/shared/logger';
 import { config } from '@developer-tools/shared/config';
 
@@ -10,7 +12,7 @@ const providers = new Map<string, SearchProvider>();
 
 /**
  * Get a search provider by name
- * @param name Provider name (perplexity, gemini, openai)
+ * @param name Provider name (perplexity, gemini, openai, openrouter, modelbox)
  * @returns Provider instance
  */
 export function getProvider(name?: string): SearchProvider {
@@ -35,6 +37,12 @@ export function getProvider(name?: string): SearchProvider {
     case 'openai':
       provider = new OpenAIProvider();
       break;
+    case 'openrouter':
+      provider = new OpenRouterProvider();
+      break;
+    case 'modelbox':
+      provider = new ModelBoxProvider();
+      break;
     default:
       logger.warn(`Unknown provider "${providerName}", falling back to Perplexity`);
       provider = new PerplexityProvider();
@@ -53,7 +61,9 @@ export async function getAvailableProviders(): Promise<SearchProvider[]> {
   const allProviders = [
     getProvider('perplexity'),
     getProvider('gemini'),
-    getProvider('openai')
+    getProvider('openai'),
+    getProvider('openrouter'),
+    getProvider('modelbox')
   ];
   
   // Check which providers are available (have API keys)

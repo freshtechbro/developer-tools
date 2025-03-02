@@ -38,7 +38,11 @@
     "start:unified-backend": "node unified-backend.js",
     "dev:unified": "concurrently \"npm run start:unified-backend\" \"cd unified-test-interface && npm run dev\"",
     "build:unified": "node build-unified.js",
-    "start:unified-complete": "npm run build:unified && npm run start:unified-backend"
+    "start:unified-complete": "npm run build:unified && npm run start:unified-backend",
+    "test:setup": "node scripts/test-setup.js",
+    "test:web-search": "node scripts/test-setup.js --config=./test-configs/web-search.json",
+    "test:web-search:skip-health": "node scripts/test-setup.js --config=./test-configs/web-search.json --skip-health-checks",
+    "test:all": "node scripts/test-setup.js --config=./test-configs/default.json"
   },
   "workspaces": [
     "packages/*",
@@ -71,7 +75,9 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.2.6",
     "typescript": "^5.3.3",
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "yargs": "^17.7.2",
+    "playwright-chromium": "^1.38.0"
   },
   "bin": {
     "web-search": "tools/web-search/bin.js",
