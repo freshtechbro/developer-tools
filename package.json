@@ -60,7 +60,7 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.2.6",
     "typescript": "^5.3.3",
-    "concurrently": "^8.2.2"
+    "concurrently": "^9.1.2"
   },
   "bin": {
     "web-search": "tools/web-search/bin.js",
